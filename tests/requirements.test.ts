@@ -30,4 +30,10 @@ describe("locked project requirements", () => {
       ),
     ).toBe(true);
   });
+
+  it("commits the planned app/api folder for future route handlers", () => {
+    expect(existsSync(path.join(process.cwd(), "app", "api", ".gitkeep"))).toBe(
+      true,
+    );
+  });
 });

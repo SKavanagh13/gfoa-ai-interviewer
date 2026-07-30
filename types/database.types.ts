@@ -1,10 +1,11 @@
 // Placeholder for generated Supabase database types.
 //
-// Wave 1 defines the generation workflow, but this environment does not have
-// the Supabase CLI installed. Regenerate this file after installing the CLI and
-// applying local migrations:
+// Wave 1 defines the generation workflow, but Docker/local Supabase services
+// are not available in this environment. Regenerate this file after starting
+// local services and applying local migrations:
 //
-//   supabase db reset
-//   supabase gen types typescript --local > types/database.types.ts
+//   npm run db:start
+//   npm run db:reset
+//   npm run db:types
 
 export type Database = Record<string, never>;

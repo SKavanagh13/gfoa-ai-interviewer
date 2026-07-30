@@ -9,6 +9,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "typecheck": "tsc --noEmit --incremental false",
+    "db:start": "supabase start",
+    "db:reset": "supabase db reset",
     "db:types": "supabase gen types typescript --local > types/database.types.ts"
   },
   "dependencies": {
@@ -23,6 +25,7 @@
     "@types/react-dom": "^19.1.0",
     "eslint": "^9.0.0",
     "eslint-config-next": "^15.5.0",
+    "supabase": "^2.110.0",
     "typescript": "^5.9.0",
     "vitest": "^3.2.0"
   }

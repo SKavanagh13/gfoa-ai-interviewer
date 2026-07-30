@@ -39,13 +39,14 @@ Any approved revision should:
 
 ## Database type generation
 
-Wave 1 stores Supabase database schema changes in `supabase/migrations/`.
+Wave 1 stores Supabase database schema changes in `supabase/migrations/`. The Supabase CLI is installed as a project dev dependency.
 
-After installing the Supabase CLI and starting local services, regenerate database types with:
+After Docker is available and local Supabase services are running, regenerate database types with:
 
 ```bash
-supabase db reset
+npm run db:start
+npm run db:reset
 npm run db:types
 ```
 
-`types/database.types.ts` is a placeholder until those local Supabase commands can run.
+`types/database.types.ts` is a placeholder until local Supabase services can run and the type-generation command succeeds.

@@ -243,7 +243,7 @@ create unique index transcript_segments_provider_event_unique
 
 create table public.analysis_runs (
   analysis_id uuid primary key default gen_random_uuid(),
-  interview_id uuid not null references public.interviews(interview_id) on delete cascade,
+  interview_id uuid not null references public.interviews(interview_id) on delete restrict,
   status public.analysis_run_status not null default 'pending',
   analysis_model text,
   analysis_prompt_version text,
@@ -435,6 +435,60 @@ before insert or update of status
 on public.analysis_runs
 for each row
 execute function public.validate_succeeded_analysis_objective_count();
+
+create or replace function public.prevent_objective_result_deletion_if_succeeded()
+returns trigger
+language plpgsql
+as $$
+declare
+  run_status public.analysis_run_status;
+begin
+  select ar.status
+  into run_status
+  from public.analysis_runs ar
+  where ar.analysis_id = old.analysis_id;
+
+  if run_status = 'succeeded' then
+    raise exception 'cannot delete objective results from a succeeded analysis run';
+  end if;
+
+  return old;
+end;
+$$;
+
+create trigger objective_results_prevent_deletion_if_succeeded
+before delete
+on public.objective_results
+for each row
+execute function public.prevent_objective_result_deletion_if_succeeded();
+
+create or replace function public.validate_eligible_interview_has_segments()
+returns trigger
+language plpgsql
+as $$
+declare
+  seg_count integer;
+begin
+  if new.analysis_eligibility = 'eligible' then
+    select count(*)
+    into seg_count
+    from public.analysis_eligibility_segments aes
+    where aes.interview_id = new.interview_id;
+
+    if seg_count = 0 then
+      raise exception 'eligible interview must have at least one supporting segment in analysis_eligibility_segments';
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger interviews_require_eligibility_segments
+before insert or update of analysis_eligibility
+on public.interviews
+for each row
+execute function public.validate_eligible_interview_has_segments();
 
 create or replace function public.validate_objective_result_segment()
 returns trigger

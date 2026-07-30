@@ -94,6 +94,41 @@ describe("Wave 1 database migration", () => {
     );
   });
 
+  it("prevents objective result deletion after an analysis succeeds", () => {
+    expect(normalized).toContain(
+      "prevent_objective_result_deletion_if_succeeded",
+    );
+    expect(normalized).toContain("run_status = 'succeeded'");
+    expect(normalized).toContain(
+      "cannot delete objective results from a succeeded analysis run",
+    );
+    expect(normalized).toContain(
+      "create trigger objective_results_prevent_deletion_if_succeeded",
+    );
+    expect(normalized).toContain("before delete on public.objective_results");
+  });
+
+  it("requires canonical segment evidence before an interview is marked eligible", () => {
+    expect(normalized).toContain("validate_eligible_interview_has_segments");
+    expect(normalized).toContain("new.analysis_eligibility = 'eligible'");
+    expect(normalized).toContain(
+      "from public.analysis_eligibility_segments aes",
+    );
+    expect(normalized).toContain("seg_count = 0");
+    expect(normalized).toContain("interviews_require_eligibility_segments");
+  });
+
+  it("restricts interview deletion when analysis history exists", () => {
+    const analysisRunsTable = migration.match(
+      /create table public\.analysis_runs \([\s\S]*?\);/,
+    )?.[0];
+
+    expect(analysisRunsTable).toBeDefined();
+    expect(analysisRunsTable).toContain(
+      "references public.interviews(interview_id) on delete restrict",
+    );
+  });
+
   it("uses normalized evidence tables with final-segment validation triggers", () => {
     for (const table of [
       "objective_result_segments",

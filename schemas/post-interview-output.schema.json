@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gfoa.org/schemas/post-interview-output.schema.json",
+  "title": "Post-Interview Output",
+  "description": "Wave 0 placeholder. The strict analysis schema is defined in a later wave.",
+  "type": "object",
+  "additionalProperties": true
+}

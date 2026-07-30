@@ -36,3 +36,16 @@ Any approved revision should:
 2. update the relevant document version;
 3. be committed separately from implementation code when practical; and
 4. note which requirement changed and why.
+
+## Database type generation
+
+Wave 1 stores Supabase database schema changes in `supabase/migrations/`.
+
+After installing the Supabase CLI and starting local services, regenerate database types with:
+
+```bash
+supabase db reset
+npm run db:types
+```
+
+`types/database.types.ts` is a placeholder until those local Supabase commands can run.

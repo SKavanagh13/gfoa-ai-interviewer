@@ -160,18 +160,24 @@ export type Database = {
       interview_quote_segments: {
         Row: {
           created_at: string
+          end_offset: number | null
           quote_id: string
           segment_id: string
+          start_offset: number | null
         }
         Insert: {
           created_at?: string
+          end_offset?: number | null
           quote_id: string
           segment_id: string
+          start_offset?: number | null
         }
         Update: {
           created_at?: string
+          end_offset?: number | null
           quote_id?: string
           segment_id?: string
+          start_offset?: number | null
         }
         Relationships: [
           {
@@ -691,6 +697,41 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_staff_or_admin: { Args: never; Returns: boolean }
+      persist_succeeded_analysis: {
+        Args: {
+          p_additional_issue: string
+          p_analysis_id: string
+          p_emerging_signal: string
+          p_estimated_analysis_cost_usd: number
+          p_estimated_input_tokens: number
+          p_estimated_output_tokens: number
+          p_key_tension: string
+          p_limitations: string
+          p_negative_reaction_flag: boolean
+          p_objective_results: Json
+          p_objective_segments: Json
+          p_opportunity_signal: string
+          p_overall_quality: Database["public"]["Enums"]["overall_quality"]
+          p_overall_summary: string
+          p_primary_takeaway: string
+          p_quote_segments: Json
+          p_quotes: Json
+          p_raw_structured_output: Json
+          p_recurring_concern: string
+          p_theme_assignments: Json
+          p_theme_segments: Json
+        }
+        Returns: undefined
+      }
+      record_analysis_eligibility: {
+        Args: {
+          p_analysis_eligibility: Database["public"]["Enums"]["analysis_eligibility"]
+          p_interview_id: string
+          p_supporting_objective: Database["public"]["Enums"]["objective"]
+          p_supporting_segment_ids: string[]
+        }
+        Returns: undefined
+      }
       try_mark_interview_active: {
         Args: { p_interview_id: string }
         Returns: Database["public"]["Enums"]["interview_lifecycle_status"]

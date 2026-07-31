@@ -1,15 +1,18 @@
+import { IntakeFlow } from "@/app/interview/intake-flow";
+
 export default function InterviewPage() {
   return (
     <main className="page-shell stack">
       <div>
-        <p className="eyebrow">Future Wave 2 and Wave 3</p>
-        <h1>Interview</h1>
+        <p className="eyebrow">Wave 2 intake and consent</p>
+        <h1>GFOA AI Voice Interviewer</h1>
         <p className="muted">
-          Placeholder route only. Participant intake, consent, microphone
-          handling, WebRTC, and Realtime session behavior are not implemented in
-          Wave 0.
+          Confirm your profile and consent before the voice interview begins.
+          Audio capture and the live interview session are reserved for the next
+          implementation wave.
         </p>
       </div>
+      <IntakeFlow />
     </main>
   );
 }

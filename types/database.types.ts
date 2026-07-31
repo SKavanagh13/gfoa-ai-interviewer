@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -453,6 +453,41 @@ export type Database = {
           },
         ]
       }
+      participant_session_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          interview_id: string
+          participant_session_token_id: string
+          token_digest: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          interview_id: string
+          participant_session_token_id?: string
+          token_digest: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          interview_id?: string
+          participant_session_token_id?: string
+          token_digest?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participant_session_tokens_interview_id_fkey"
+            columns: ["interview_id"]
+            isOneToOne: false
+            referencedRelation: "interviews"
+            referencedColumns: ["interview_id"]
+          },
+        ]
+      }
       participants: {
         Row: {
           created_at: string
@@ -503,41 +538,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
-      }
-      participant_session_tokens: {
-        Row: {
-          created_at: string
-          expires_at: string
-          interview_id: string
-          participant_session_token_id: string
-          token_digest: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          expires_at: string
-          interview_id: string
-          participant_session_token_id?: string
-          token_digest: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          expires_at?: string
-          interview_id?: string
-          participant_session_token_id?: string
-          token_digest?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "participant_session_tokens_interview_id_fkey"
-            columns: ["interview_id"]
-            isOneToOne: false
-            referencedRelation: "interviews"
-            referencedColumns: ["interview_id"]
-          },
-        ]
       }
       theme_assignment_segments: {
         Row: {
@@ -692,9 +692,7 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_staff_or_admin: { Args: never; Returns: boolean }
       try_mark_interview_active: {
-        Args: {
-          p_interview_id: string
-        }
+        Args: { p_interview_id: string }
         Returns: Database["public"]["Enums"]["interview_lifecycle_status"]
       }
     }

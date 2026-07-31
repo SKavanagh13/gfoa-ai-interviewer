@@ -34,9 +34,10 @@ export class SupabaseIntakeRepository implements IntakeRepository {
         p_organization_size_band: participant.organization_size_band ?? "",
         p_experience_band: participant.experience_band ?? "",
         p_profile_status: participant.profile_status ?? "not_confirmed",
-        p_profile_confirmed_at: participant.profile_confirmed_at ?? "",
+        p_profile_confirmed_at:
+          participant.profile_confirmed_at ?? new Date().toISOString(),
         p_consent_version: interview.consent_version ?? "",
-        p_consented_at: interview.consented_at ?? "",
+        p_consented_at: interview.consented_at ?? new Date().toISOString(),
         p_operating_principles_version:
           interview.operating_principles_version ?? "",
         p_interview_guide_version: interview.interview_guide_version ?? "",

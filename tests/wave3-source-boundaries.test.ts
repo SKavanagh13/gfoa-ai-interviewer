@@ -43,6 +43,42 @@ describe("Wave 3 route and runtime boundaries", () => {
     expect(worker).toContain("runSidebandController");
   });
 
+  it("authenticates sideband worker dispatches with a shared secret", () => {
+    const dispatcher = readWorkspaceFile(
+      "lib",
+      "interview",
+      "sideband-dispatcher.ts",
+    );
+    const worker = readWorkspaceFile("workers", "sideband-worker.ts");
+
+    expect(dispatcher).toContain("SIDEBAND_DISPATCH_SECRET_HEADER");
+    expect(dispatcher).toContain("SIDEBAND_DISPATCH_SECRET");
+    expect(worker).toContain("sidebandDispatchSecretMatches");
+    expect(worker).toContain("response.writeHead(401)");
+  });
+
+  it("treats hard-cap sideband closure as intentional transcript finalization", () => {
+    const controller = readWorkspaceFile(
+      "lib",
+      "interview",
+      "sideband-controller.ts",
+    );
+
+    expect(controller).toMatch(/intentionalFinalization = true[\s\S]*hangUpRealtimeCall/);
+    expect(controller).toContain("sawEndSignal || intentionalFinalization");
+  });
+
+  it("does not overwrite prior completed or technical-failure dispositions", () => {
+    const repository = readWorkspaceFile(
+      "lib",
+      "interview",
+      "session-repository.ts",
+    );
+
+    expect(repository).toContain('.is("end_disposition", null)');
+    expect(repository).toContain('.neq("lifecycle_status", "failed")');
+  });
+
   it("uses the mutual activation path from browser and sideband connection flows", () => {
     const repository = readWorkspaceFile(
       "lib",

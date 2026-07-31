@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getServerEnv } from "@/lib/env";
+import { SIDEBAND_DISPATCH_SECRET_HEADER } from "@/lib/interview/sideband-dispatch-auth";
 
 export async function dispatchSidebandWorker(input: {
   interviewId: string;
@@ -12,6 +13,7 @@ export async function dispatchSidebandWorker(input: {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      [SIDEBAND_DISPATCH_SECRET_HEADER]: env.SIDEBAND_DISPATCH_SECRET,
     },
     body: JSON.stringify(input),
   });

@@ -1,6 +1,10 @@
 import http from "node:http";
 import { getServerRuntimeEnv } from "@/lib/server-runtime-env";
 import { runSidebandController } from "@/lib/interview/sideband-controller";
+import {
+  SIDEBAND_DISPATCH_SECRET_HEADER,
+  sidebandDispatchSecretMatches,
+} from "@/lib/interview/sideband-dispatch-auth";
 import { InterviewSessionRepository } from "@/lib/interview/session-repository";
 import { createServiceRoleSupabaseRuntimeClient } from "@/lib/supabase/service-role";
 
@@ -9,6 +13,19 @@ const port = Number(process.env.SIDEBAND_WORKER_PORT ?? 8787);
 const server = http.createServer((request, response) => {
   if (request.method !== "POST" || request.url !== "/sideband/start") {
     response.writeHead(404).end();
+    return;
+  }
+
+  const env = getServerRuntimeEnv();
+  const dispatchSecret = request.headers[SIDEBAND_DISPATCH_SECRET_HEADER];
+  const providedSecret = Array.isArray(dispatchSecret)
+    ? dispatchSecret[0]
+    : dispatchSecret;
+
+  if (
+    !sidebandDispatchSecretMatches(env.SIDEBAND_DISPATCH_SECRET, providedSecret)
+  ) {
+    response.writeHead(401).end("Unauthorized");
     return;
   }
 
@@ -28,7 +45,6 @@ const server = http.createServer((request, response) => {
         return;
       }
 
-      const env = getServerRuntimeEnv();
       const repository = new InterviewSessionRepository(
         createServiceRoleSupabaseRuntimeClient(),
         env.PARTICIPANT_SESSION_TOKEN_SECRET,

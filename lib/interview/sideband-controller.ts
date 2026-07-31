@@ -26,6 +26,7 @@ export async function runSidebandController(
   await new Promise<void>((resolve, reject) => {
     let settled = false;
     let sawEndSignal = false;
+    let intentionalFinalization = false;
     const ws = new WebSocketImplementation(url, {
       headers: {
         Authorization: `Bearer ${env.OPENAI_API_KEY}`,
@@ -38,6 +39,7 @@ export async function runSidebandController(
     }, connectionTimeoutMs);
 
     const hardCapTimer = setTimeout(() => {
+      intentionalFinalization = true;
       ws.send(
         JSON.stringify({
           type: "response.create",
@@ -95,7 +97,7 @@ export async function runSidebandController(
     }
 
     async function finalizeTranscript() {
-      if (sawEndSignal) {
+      if (sawEndSignal || intentionalFinalization) {
         await input.repository.markTranscriptStable(
           input.interviewId,
           reconciliationTimeoutMs,

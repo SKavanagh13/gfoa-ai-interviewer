@@ -150,12 +150,25 @@ export class InterviewSessionRepository {
 
   async markParticipantEnded(interviewId: string): Promise<void> {
     await this.updateInterview(interviewId, {
-      lifecycle_status: "ended",
-      end_disposition: "participant_ended",
       browser_connection_status: "closed",
       ended_at: new Date().toISOString(),
-      transcript_status: "stabilizing",
     });
+
+    const { error } = await this.supabase
+      .from("interviews")
+      .update({
+        lifecycle_status: "ended",
+        end_disposition: "participant_ended",
+        ended_at: new Date().toISOString(),
+        transcript_status: "stabilizing",
+      })
+      .eq("interview_id", interviewId)
+      .is("end_disposition", null)
+      .neq("lifecycle_status", "failed");
+
+    if (error) {
+      throw new Error(`Failed to mark participant ended: ${error.message}`);
+    }
   }
 
   async markTranscriptStable(

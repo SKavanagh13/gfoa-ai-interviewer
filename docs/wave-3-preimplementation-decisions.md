@@ -11,6 +11,9 @@ run the same worker shape in a runtime that can hold WebSocket connections for
 the 20-minute hard cap plus transcript reconciliation buffer, such as a
 container, VM, or always-on Node service.
 
+The worker dispatch endpoint is internal and requires the shared
+`SIDEBAND_DISPATCH_SECRET` value in the `X-Sideband-Dispatch-Secret` header.
+
 ## OpenAI Sideband Contract
 
 Official OpenAI Realtime docs confirmed on 2026-07-31:

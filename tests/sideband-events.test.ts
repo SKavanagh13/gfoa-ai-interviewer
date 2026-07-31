@@ -51,4 +51,20 @@ describe("sideband event parsing", () => {
       outputTokens: 20,
     });
   });
+
+  it("does not treat ordinary output buffer stops as session endings", () => {
+    expect(
+      parseSidebandEvent({
+        type: "output_audio_buffer.stopped",
+      }),
+    ).toEqual([{ kind: "ignore" }]);
+  });
+
+  it("maps the confirmed session-ended sentinel", () => {
+    expect(
+      parseSidebandEvent({
+        type: "session.ended",
+      }),
+    ).toEqual([{ kind: "sessionEnded" }]);
+  });
 });

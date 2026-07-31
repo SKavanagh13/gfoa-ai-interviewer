@@ -85,10 +85,7 @@ export function parseSidebandEvent(event: RealtimeEvent): SidebandParsedEvent[] 
     return parsed;
   }
 
-  if (
-    event.type === "session.ended" ||
-    event.type === "output_audio_buffer.stopped"
-  ) {
+  if (event.type === "session.ended") {
     return [{ kind: "sessionEnded" }];
   }
 

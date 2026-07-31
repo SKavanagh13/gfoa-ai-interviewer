@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, TablesInsert } from "@/types/database.types";
+import { validateTranscriptForCanonicalUse } from "@/lib/transcript/canonical";
+import type { CanonicalTranscriptSegment } from "@/lib/transcript/types";
 import {
   digestParticipantSessionToken,
   tokenDigestMatches,
@@ -175,6 +177,19 @@ export class InterviewSessionRepository {
     interviewId: string,
     timeoutMs: number,
   ): Promise<void> {
+    const transcriptSegments =
+      await this.loadCanonicalTranscriptSegments(interviewId);
+    const validation = validateTranscriptForCanonicalUse(transcriptSegments);
+
+    if (!validation.ok) {
+      await this.markTranscriptFailed(
+        interviewId,
+        timeoutMs,
+        validation.errorMessage,
+      );
+      return;
+    }
+
     await this.updateInterview(interviewId, {
       transcript_status: "stable",
       transcript_stabilized_at: new Date().toISOString(),
@@ -275,6 +290,34 @@ export class InterviewSessionRepository {
       estimated_output_tokens:
         (data.estimated_output_tokens ?? 0) + (usage.outputTokens ?? 0),
     });
+  }
+
+  private async loadCanonicalTranscriptSegments(
+    interviewId: string,
+  ): Promise<CanonicalTranscriptSegment[]> {
+    const { data, error } = await this.supabase
+      .from("transcript_segments")
+      .select(
+        "segment_id, interview_id, sequence_number, speaker, text, start_time_ms, end_time_ms, provider_event_id, is_final",
+      )
+      .eq("interview_id", interviewId)
+      .order("sequence_number", { ascending: true });
+
+    if (error) {
+      throw new Error(`Failed to load canonical transcript: ${error.message}`);
+    }
+
+    return data.map((segment) => ({
+      segmentId: segment.segment_id,
+      interviewId: segment.interview_id,
+      sequenceNumber: segment.sequence_number,
+      speaker: segment.speaker,
+      text: segment.text,
+      startTimeMs: segment.start_time_ms,
+      endTimeMs: segment.end_time_ms,
+      providerEventId: segment.provider_event_id,
+      isFinal: segment.is_final,
+    }));
   }
 
   private async updateInterview(

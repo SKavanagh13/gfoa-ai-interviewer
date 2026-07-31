@@ -12,7 +12,18 @@ const migration = readFileSync(
   "utf8",
 );
 
+const wave2Migration = readFileSync(
+  path.join(
+    process.cwd(),
+    "supabase",
+    "migrations",
+    "20260731011500_wave_2_atomic_intake_creation.sql",
+  ),
+  "utf8",
+);
+
 const normalized = migration.toLowerCase().replace(/\s+/g, " ");
+const normalizedWave2 = wave2Migration.toLowerCase().replace(/\s+/g, " ");
 
 const requiredTables = [
   "participants",
@@ -191,5 +202,29 @@ describe("Wave 1 database migration", () => {
     expect(normalized).toContain("new.lifecycle_status = 'active'");
     expect(normalized).toContain("new.browser_connection_status <> 'connected'");
     expect(normalized).toContain("new.sideband_connection_status <> 'connected'");
+  });
+});
+
+describe("Wave 2 database migration", () => {
+  it("creates participant and interview records atomically through one RPC", () => {
+    expect(normalizedWave2).toContain(
+      "create or replace function public.create_participant_and_interview",
+    );
+    expect(normalizedWave2).toContain("returns table");
+    expect(normalizedWave2).toContain("insert into public.participants");
+    expect(normalizedWave2).toContain("returning participants.participant_id");
+    expect(normalizedWave2).toContain("insert into public.interviews");
+    expect(normalizedWave2).toContain("created_participant_id");
+    expect(normalizedWave2).toContain("nullif(p_name, '')");
+    expect(normalizedWave2).toContain("nullif(p_organization_name, '')");
+    expect(normalizedWave2).not.toContain("commit");
+  });
+
+  it("limits direct RPC execution to the service role", () => {
+    expect(normalizedWave2).toContain(
+      "revoke all on function public.create_participant_and_interview",
+    );
+    expect(normalizedWave2).toContain("from public, anon, authenticated");
+    expect(normalizedWave2).toContain("to service_role");
   });
 });

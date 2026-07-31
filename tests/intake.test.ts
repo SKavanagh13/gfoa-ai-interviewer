@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { createInterview } from "@/app/interview/actions";
 import { CONSENT_VERSION } from "@/lib/intake/consent";
 import { MockMemberDirectory } from "@/lib/intake/member-directory";
 import {
@@ -7,6 +8,8 @@ import {
   validateConsentedProfileForm,
   validateProfileForm,
 } from "@/lib/intake/profile";
+
+vi.mock("server-only", () => ({}));
 
 describe("member directory abstraction", () => {
   it("finds a matched member by normalized email", async () => {
@@ -164,6 +167,22 @@ describe("consent-backed interview creation", () => {
         "State or region is required.",
       ],
       ok: false,
+    });
+  });
+
+  it("returns a form error when persistence fails", async () => {
+    const formData = new FormData();
+    formData.set("source", "unmatched");
+    formData.set("email", "new.person@example.org");
+    formData.set("title", "Budget Manager");
+    formData.set("governmentType", "Special district");
+    formData.set("stateOrRegion", "South");
+    formData.set("consent", "on");
+
+    await expect(createInterview({ errors: [] }, formData)).resolves.toEqual({
+      errors: [
+        "We could not create the interview record. Please try again in a moment.",
+      ],
     });
   });
 });

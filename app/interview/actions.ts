@@ -81,11 +81,20 @@ export async function createInterview(
     consentedAt,
   });
 
-  const repository = new SupabaseIntakeRepository(createServiceRoleSupabaseClient());
-  const created = await repository.createParticipantAndInterview(
-    participant,
-    interview,
-  );
+  let created;
+
+  try {
+    const repository = new SupabaseIntakeRepository(
+      createServiceRoleSupabaseClient(),
+    );
+    created = await repository.createParticipantAndInterview(participant, interview);
+  } catch {
+    return {
+      errors: [
+        "We could not create the interview record. Please try again in a moment.",
+      ],
+    };
+  }
 
   redirect(`/interview/created?interviewId=${created.interviewId}`);
 }

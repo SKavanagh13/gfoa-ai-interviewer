@@ -1,5 +1,7 @@
 "use server";
 
+import crypto from "node:crypto";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { CONSENT_VERSION } from "@/lib/intake/consent";
 import { getMemberDirectory } from "@/lib/intake/member-directory";
@@ -11,6 +13,11 @@ import {
   validateEmail,
 } from "@/lib/intake/profile";
 import { SupabaseIntakeRepository } from "@/lib/intake/repository";
+import {
+  createParticipantSessionToken,
+  participantSessionCookieName,
+} from "@/lib/interview/participant-session";
+import { getServerEnv } from "@/lib/env";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/server";
 
 export type LookupState = {
@@ -75,6 +82,7 @@ export async function createInterview(
   }
 
   const consentedAt = new Date().toISOString();
+  const interviewId = crypto.randomUUID();
   const participant = participantInsertFromProfile(profileResult.profile);
   const interview = interviewInsertFromConsent({
     consentVersion: CONSENT_VERSION,
@@ -82,12 +90,26 @@ export async function createInterview(
   });
 
   let created;
+  let participantSession;
 
   try {
+    const serverEnv = getServerEnv();
     const repository = new SupabaseIntakeRepository(
       createServiceRoleSupabaseClient(),
     );
-    created = await repository.createParticipantAndInterview(participant, interview);
+    participantSession = createParticipantSessionToken({
+      interviewId,
+      secret: serverEnv.PARTICIPANT_SESSION_TOKEN_SECRET,
+      ttlSeconds: Number(serverEnv.PARTICIPANT_SESSION_TOKEN_TTL_SECONDS),
+    });
+    created = await repository.createParticipantAndInterview(
+      participant,
+      { ...interview, interview_id: interviewId },
+      {
+        tokenDigest: participantSession.digest,
+        expiresAt: participantSession.expiresAt,
+      },
+    );
   } catch {
     return {
       errors: [
@@ -95,6 +117,15 @@ export async function createInterview(
       ],
     };
   }
+
+  const cookieStore = await cookies();
+  cookieStore.set(participantSessionCookieName(created.interviewId), participantSession.rawToken, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    expires: new Date(participantSession.expiresAt),
+    path: "/",
+  });
 
   redirect(`/interview/created?interviewId=${created.interviewId}`);
 }

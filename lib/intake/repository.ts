@@ -8,10 +8,18 @@ export type CreatedIntakeInterview = {
   interviewId: string;
 };
 
+export type ParticipantSessionInsert = {
+  tokenDigest: string;
+  expiresAt: string;
+};
+
 export interface IntakeRepository {
   createParticipantAndInterview(
     participant: TablesInsert<"participants">,
-    interview: Omit<TablesInsert<"interviews">, "participant_id">,
+    interview: Omit<TablesInsert<"interviews">, "participant_id"> & {
+      interview_id: string;
+    },
+    participantSession: ParticipantSessionInsert,
   ): Promise<CreatedIntakeInterview>;
 }
 
@@ -20,7 +28,10 @@ export class SupabaseIntakeRepository implements IntakeRepository {
 
   async createParticipantAndInterview(
     participant: TablesInsert<"participants">,
-    interview: Omit<TablesInsert<"interviews">, "participant_id">,
+    interview: Omit<TablesInsert<"interviews">, "participant_id"> & {
+      interview_id: string;
+    },
+    participantSession: ParticipantSessionInsert,
   ): Promise<CreatedIntakeInterview> {
     const { data, error } = await this.supabase
       .rpc("create_participant_and_interview", {
@@ -38,10 +49,13 @@ export class SupabaseIntakeRepository implements IntakeRepository {
           participant.profile_confirmed_at ?? new Date().toISOString(),
         p_consent_version: interview.consent_version ?? "",
         p_consented_at: interview.consented_at ?? new Date().toISOString(),
+        p_interview_id: interview.interview_id,
         p_operating_principles_version:
           interview.operating_principles_version ?? "",
         p_interview_guide_version: interview.interview_guide_version ?? "",
         p_live_prompt_version: interview.live_prompt_version ?? "",
+        p_participant_session_token_digest: participantSession.tokenDigest,
+        p_participant_session_expires_at: participantSession.expiresAt,
       })
       .single();
 

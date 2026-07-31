@@ -183,9 +183,72 @@ button:disabled {
   padding: 12px;
 }
 
+.split-row {
+  align-items: flex-start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.status-pill {
+  background: #e9f5f1;
+  border: 1px solid #b9ded1;
+  border-radius: 999px;
+  color: #184b3c;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.5rem 0.7rem;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.session-metrics {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.session-metrics > div {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.8rem;
+}
+
+.metric-label {
+  color: var(--muted);
+  display: block;
+  font-size: 0.78rem;
+  margin-bottom: 0.25rem;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.secondary-button {
+  background: #ffffff;
+  color: var(--foreground);
+}
+
+.form-error {
+  color: #9f1d1d;
+  font-weight: 700;
+}
+
 @media (max-width: 760px) {
   .intake-grid,
   .field-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .split-row {
+    display: grid;
+  }
+
+  .session-metrics {
     grid-template-columns: 1fr;
   }
 }

@@ -22,8 +22,19 @@ const wave2Migration = readFileSync(
   "utf8",
 );
 
+const wave3Migration = readFileSync(
+  path.join(
+    process.cwd(),
+    "supabase",
+    "migrations",
+    "20260731120000_wave_3_live_session_control.sql",
+  ),
+  "utf8",
+);
+
 const normalized = migration.toLowerCase().replace(/\s+/g, " ");
 const normalizedWave2 = wave2Migration.toLowerCase().replace(/\s+/g, " ");
+const normalizedWave3 = wave3Migration.toLowerCase().replace(/\s+/g, " ");
 
 const requiredTables = [
   "participants",
@@ -226,5 +237,35 @@ describe("Wave 2 database migration", () => {
     );
     expect(normalizedWave2).toContain("from public, anon, authenticated");
     expect(normalizedWave2).toContain("to service_role");
+  });
+});
+
+describe("Wave 3 database migration", () => {
+  it("stores only hashed participant session tokens", () => {
+    expect(normalizedWave3).toContain(
+      "create table public.participant_session_tokens",
+    );
+    expect(normalizedWave3).toContain("token_digest text not null");
+    expect(normalizedWave3).toContain("expires_at timestamptz not null");
+    expect(normalizedWave3).not.toContain("raw_token");
+    expect(normalizedWave3).not.toContain("token text not null");
+  });
+
+  it("adds participant session creation to the atomic intake RPC", () => {
+    expect(normalizedWave3).toContain("p_interview_id uuid");
+    expect(normalizedWave3).toContain("p_participant_session_token_digest text");
+    expect(normalizedWave3).toContain("p_participant_session_expires_at timestamptz");
+    expect(normalizedWave3).toContain(
+      "insert into public.participant_session_tokens",
+    );
+  });
+
+  it("provides a mutual idempotent activation RPC", () => {
+    expect(normalizedWave3).toContain(
+      "create or replace function public.try_mark_interview_active",
+    );
+    expect(normalizedWave3).toContain("browser_connection_status = 'connected'");
+    expect(normalizedWave3).toContain("sideband_connection_status = 'connected'");
+    expect(normalizedWave3).toContain("and lifecycle_status = 'created'");
   });
 });

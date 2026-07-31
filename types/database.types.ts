@@ -627,6 +627,30 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_participant_and_interview: {
+        Args: {
+          p_consent_version: string
+          p_consented_at: string
+          p_email: string
+          p_experience_band: string
+          p_gfoa_member_id: string
+          p_government_type: string
+          p_interview_guide_version: string
+          p_live_prompt_version: string
+          p_name: string
+          p_operating_principles_version: string
+          p_organization_name: string
+          p_organization_size_band: string
+          p_profile_confirmed_at: string
+          p_profile_status: Database["public"]["Enums"]["profile_status"]
+          p_state_or_region: string
+          p_title: string
+        }
+        Returns: {
+          interview_id: string
+          participant_id: string
+        }[]
+      }
       is_admin: { Args: never; Returns: boolean }
       is_staff_or_admin: { Args: never; Returns: boolean }
     }

@@ -54,5 +54,9 @@ npm run db:types
 ## MVP readiness operations
 
 Operational readiness notes that are not locked requirements live in `docs/`.
-See `docs/readiness-ops.md` for pilot spending-alert guidance and the expected
-typecheck/build verification order.
+See `docs/deployment-readiness.md` for the MVP deployment checklist, required
+environment variables, sideband worker setup, Supabase staff/admin setup, and
+preflight commands.
+
+See `docs/readiness-ops.md` for the supporting spending-alert and typecheck
+notes.

@@ -19,30 +19,7 @@ import {
 } from "@/lib/interview/participant-session";
 import { getServerEnv } from "@/lib/env";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/server";
-
-export type LookupState = {
-  email: string;
-  errors: string[];
-  match:
-    | ReturnType<typeof memberProfileToFormProfile>
-    | null;
-  searched: boolean;
-};
-
-export type CreateInterviewState = {
-  errors: string[];
-};
-
-export const initialLookupState: LookupState = {
-  email: "",
-  errors: [],
-  match: null,
-  searched: false,
-};
-
-export const initialCreateInterviewState: CreateInterviewState = {
-  errors: [],
-};
+import type { CreateInterviewState, LookupState } from "@/app/interview/state";
 
 export async function lookupMember(
   _previousState: LookupState,

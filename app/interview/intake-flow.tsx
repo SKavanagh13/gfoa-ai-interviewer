@@ -1,12 +1,11 @@
 "use client";
 
 import { useActionState } from "react";
+import { createInterview, lookupMember } from "@/app/interview/actions";
 import {
-  createInterview,
   initialCreateInterviewState,
   initialLookupState,
-  lookupMember,
-} from "@/app/interview/actions";
+} from "@/app/interview/state";
 import { consentDisclosureItems, CONSENT_VERSION } from "@/lib/intake/consent";
 
 export function IntakeFlow() {

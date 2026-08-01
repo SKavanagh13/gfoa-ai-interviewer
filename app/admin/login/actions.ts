@@ -2,14 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createAuthenticatedSupabaseClient } from "@/lib/supabase/auth-server";
-
-export type AdminLoginState = {
-  error: string | null;
-};
-
-export const initialAdminLoginState: AdminLoginState = {
-  error: null,
-};
+import type { AdminLoginState } from "@/app/admin/login/state";
 
 export async function signInAdmin(
   _previousState: AdminLoginState,

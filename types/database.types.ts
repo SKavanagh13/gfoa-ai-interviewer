@@ -698,10 +698,7 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_staff_or_admin: { Args: never; Returns: boolean }
       persist_succeeded_analysis: {
-        Args: {
-          p_analysis_id: string
-          p_payload: Json
-        }
+        Args: { p_analysis_id: string; p_payload: Json }
         Returns: undefined
       }
       record_analysis_eligibility: {

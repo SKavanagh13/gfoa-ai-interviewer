@@ -14,7 +14,7 @@ The locked governing documents are:
 The MVP must prove one complete end-to-end path:
 
 1. Participant identity intake
-2. Profile confirmation
+2. Email confirmation
 3. Consent and disclosure
 4. Live voice interview
 5. Canonical transcript creation
@@ -83,9 +83,9 @@ The locked documents should be retained in the repository as versioned source fi
 1. Participant opens the interview link.
 2. Participant enters an email address.
 3. The application attempts to match the email to the GFOA membership database.
-4. If a match is found, the application displays the available profile for confirmation.
-5. If the profile is incorrect, the participant may correct the interview profile without modifying the authoritative membership database.
-6. If no match is found, the application collects only the minimum required profile information.
+4. The participant confirms the email address before proceeding.
+5. If a match is found, the application may link available profile context to the interview record for authorized review and later analysis without asking the participant to confirm or correct profile fields during the MVP intake flow.
+6. If no match is found, the application proceeds without collecting additional participant profile fields; missing profile fields remain null or “not collected.”
 7. The voice interviewer does not ask for name, title, organization, government type, or similar administrative information.
 
 The membership lookup should be implemented behind an abstraction so the MVP can begin with a mock or staging data source.
@@ -637,9 +637,10 @@ At minimum, the MVP is not complete until the following are demonstrated.
 
 ### Intake and Identity
 
-- matched member can confirm a profile;
-- unmatched participant can complete minimum intake;
-- profile correction does not update the authoritative membership system;
+- participant can enter and confirm an email address;
+- matched member can proceed without being asked to confirm or correct profile fields;
+- unmatched participant can proceed without being asked to enter additional profile fields;
+- membership lookup or later enrichment does not update the authoritative membership system;
 - voice interviewer does not ask identity questions;
 - analytical records do not duplicate direct identifiers.
 
@@ -725,8 +726,8 @@ At minimum, the MVP is not complete until the following are demonstrated.
 ### Wave 2 — Intake and Consent
 
 - member-directory abstraction;
-- matched and unmatched intake;
-- profile confirmation;
+- matched and unmatched email-only intake;
+- email confirmation;
 - consent and disclosure;
 - interview creation.
 
@@ -794,7 +795,7 @@ Codex and Claude Code should be instructed to:
 
 The MVP is complete when one real participant can:
 
-1. enter and confirm profile information;
+1. enter and confirm an email address;
 2. consent;
 3. complete or partially complete a voice interview;
 4. generate a canonical segmented transcript;

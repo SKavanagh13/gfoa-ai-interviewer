@@ -42,10 +42,21 @@ const wave5Migration = readFileSync(
   "utf8",
 );
 
+const wave6Migration = readFileSync(
+  path.join(
+    process.cwd(),
+    "supabase",
+    "migrations",
+    "20260801090000_wave_6_admin_review.sql",
+  ),
+  "utf8",
+);
+
 const normalized = migration.toLowerCase().replace(/\s+/g, " ");
 const normalizedWave2 = wave2Migration.toLowerCase().replace(/\s+/g, " ");
 const normalizedWave3 = wave3Migration.toLowerCase().replace(/\s+/g, " ");
 const normalizedWave5 = wave5Migration.toLowerCase().replace(/\s+/g, " ");
+const normalizedWave6 = wave6Migration.toLowerCase().replace(/\s+/g, " ");
 
 const requiredTables = [
   "participants",
@@ -334,5 +345,40 @@ describe("Wave 5 database migration", () => {
     expect(normalizedWave5).toContain("insert into public.interview_quote_segments");
     expect(normalizedWave5).toContain("start_offset");
     expect(normalizedWave5).toContain("update public.analysis_runs set status = 'succeeded'");
+  });
+});
+
+describe("Wave 6 database migration", () => {
+  it("adds a non-identifying participant context read helper for authenticated admin review", () => {
+    expect(normalizedWave6).toContain(
+      "create or replace function public.load_admin_review_participant_context",
+    );
+    expect(normalizedWave6).toContain("returns table");
+    expect(normalizedWave6).toContain("government_type text");
+    expect(normalizedWave6).toContain("state_or_region text");
+    expect(normalizedWave6).toContain("organization_size_band text");
+    expect(normalizedWave6).toContain("experience_band text");
+    expect(normalizedWave6).toContain("if not public.is_staff_or_admin()");
+    expect(normalizedWave6).toContain(
+      "grant execute on function public.load_admin_review_participant_context",
+    );
+    expect(normalizedWave6).toContain("to authenticated");
+  });
+
+  it("adds only a narrow service-role write RPC for negative reaction metadata", () => {
+    expect(normalizedWave6).toContain(
+      "create or replace function public.update_negative_reaction_flag",
+    );
+    expect(normalizedWave6).toContain("set negative_reaction_flag = p_value");
+    expect(normalizedWave6).toContain(
+      "revoke all on function public.update_negative_reaction_flag",
+    );
+    expect(normalizedWave6).toContain("from public, anon, authenticated");
+    expect(normalizedWave6).toContain(
+      "grant execute on function public.update_negative_reaction_flag",
+    );
+    expect(normalizedWave6).toContain("to service_role");
+    expect(normalizedWave6).not.toContain("create policy");
+    expect(normalizedWave6).not.toContain("for update");
   });
 });

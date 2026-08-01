@@ -18,14 +18,14 @@ function readSources(directory: string): string {
 }
 
 describe("Wave 5 source boundaries", () => {
-  it("does not implement the Wave 6 admin review UI", () => {
+  it("keeps Wave 6 admin review separate from live interviewer code", () => {
     const adminPage = readFileSync(
       path.join(process.cwd(), "app", "admin", "page.tsx"),
       "utf8",
     );
 
-    expect(adminPage).toContain("Placeholder route only");
-    expect(adminPage).not.toContain("runPostInterviewAnalysis");
+    expect(adminPage).toContain("Admin Review");
+    expect(adminPage).not.toContain("OPENAI_REALTIME_MODEL");
   });
 
   it("keeps live interviewer and post-interview analysis model calls separate", () => {

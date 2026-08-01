@@ -238,9 +238,122 @@ button:disabled {
   font-weight: 700;
 }
 
+.admin-shell h1,
+.admin-shell h2,
+.admin-shell h3,
+.admin-shell h4 {
+  margin: 0;
+}
+
+.admin-shell h1 {
+  font-size: 2rem;
+}
+
+.admin-shell h2 {
+  font-size: 1.15rem;
+}
+
+.admin-shell h3 {
+  font-size: 1rem;
+}
+
+.admin-shell h4 {
+  font-size: 0.95rem;
+}
+
+.admin-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-table {
+  border-collapse: collapse;
+  min-width: 720px;
+  width: 100%;
+}
+
+.admin-table th,
+.admin-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.admin-table th {
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.text-link {
+  color: var(--accent);
+  font-weight: 700;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.button-link {
+  border-radius: 8px;
+  display: inline-flex;
+  font-weight: 700;
+  padding: 10px 14px;
+  text-decoration: none;
+}
+
+.definition-row {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.definition-row dt {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.definition-row dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.subpanel,
+.transcript-segment {
+  background: #f7f9f6;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.transcript-segment:target {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px #b9ded1;
+}
+
+blockquote {
+  border-left: 3px solid var(--accent);
+  margin: 0;
+  padding-left: 0.85rem;
+}
+
+.evidence-links {
+  margin: 0;
+}
+
+.admin-login-form {
+  max-width: 440px;
+}
+
 @media (max-width: 760px) {
   .intake-grid,
-  .field-grid {
+  .field-grid,
+  .admin-grid {
     grid-template-columns: 1fr;
   }
 

@@ -88,6 +88,10 @@ export default async function AdminInterviewPage({
         <RecordPanel title="Consent And Timing">
           <Definition label="Consent version" value={detail.consentVersion} />
           <Definition label="Consented at" value={formatDate(detail.consentedAt)} />
+          <Definition
+            label="Continuation consented at"
+            value={formatDate(detail.continuationConsentedAt)}
+          />
           <Definition label="Started" value={formatDate(detail.startedAt)} />
           <Definition label="Ended" value={formatDate(detail.endedAt)} />
           <Definition

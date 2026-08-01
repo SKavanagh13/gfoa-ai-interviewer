@@ -52,11 +52,23 @@ const wave6Migration = readFileSync(
   "utf8",
 );
 
+const stabilizationContinuationConsentMigration = readFileSync(
+  path.join(
+    process.cwd(),
+    "supabase",
+    "migrations",
+    "20260801101500_stabilization_continuation_consent.sql",
+  ),
+  "utf8",
+);
+
 const normalized = migration.toLowerCase().replace(/\s+/g, " ");
 const normalizedWave2 = wave2Migration.toLowerCase().replace(/\s+/g, " ");
 const normalizedWave3 = wave3Migration.toLowerCase().replace(/\s+/g, " ");
 const normalizedWave5 = wave5Migration.toLowerCase().replace(/\s+/g, " ");
 const normalizedWave6 = wave6Migration.toLowerCase().replace(/\s+/g, " ");
+const normalizedStabilizationContinuationConsent =
+  stabilizationContinuationConsentMigration.toLowerCase().replace(/\s+/g, " ");
 
 const requiredTables = [
   "participants",
@@ -380,5 +392,16 @@ describe("Wave 6 database migration", () => {
     expect(normalizedWave6).toContain("to service_role");
     expect(normalizedWave6).not.toContain("create policy");
     expect(normalizedWave6).not.toContain("for update");
+  });
+});
+
+describe("Stabilization continuation consent migration", () => {
+  it("records affirmative participant agreement to continue past the target", () => {
+    expect(normalizedStabilizationContinuationConsent).toContain(
+      "alter table public.interviews add column continuation_consented_at timestamptz",
+    );
+    expect(normalizedStabilizationContinuationConsent).toContain(
+      "participant affirmatively agreed to continue past the 15-minute target",
+    );
   });
 });

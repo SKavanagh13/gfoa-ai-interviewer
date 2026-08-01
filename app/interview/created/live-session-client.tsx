@@ -14,6 +14,7 @@ type LiveState =
   | "connecting"
   | "connected"
   | "near_limit"
+  | "awaiting_continuation_consent"
   | "ending"
   | "ended"
   | "microphone_denied"
@@ -26,13 +27,20 @@ export function LiveSessionClient({
 }: LiveSessionClientProps) {
   const [state, setState] = useState<LiveState>("ready");
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [continuationConsentedAt, setContinuationConsentedAt] = useState<
+    string | null
+  >(null);
   const [error, setError] = useState<string | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    if (state !== "connected" && state !== "near_limit") {
+    if (
+      state !== "connected" &&
+      state !== "near_limit" &&
+      state !== "awaiting_continuation_consent"
+    ) {
       return;
     }
 
@@ -43,7 +51,13 @@ export function LiveSessionClient({
 
       if (nextElapsed >= hardCapSeconds) {
         void endSession();
-      } else if (nextElapsed >= targetSeconds) {
+      } else if (!continuationConsentedAt && nextElapsed >= targetSeconds) {
+        setMicrophoneEnabled(false);
+        setState("awaiting_continuation_consent");
+      } else if (
+        !continuationConsentedAt &&
+        nextElapsed >= Math.max(targetSeconds - 120, 0)
+      ) {
         setState("near_limit");
       }
     }, 1000);
@@ -151,6 +165,36 @@ export function LiveSessionClient({
     }
   }
 
+  async function continuePastTarget() {
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/interview/${interviewId}/continue`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error("Could not record continuation consent.");
+      }
+
+      setContinuationConsentedAt(new Date().toISOString());
+      setMicrophoneEnabled(true);
+      setState("connected");
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Could not record continuation consent.",
+      );
+    }
+  }
+
+  function setMicrophoneEnabled(enabled: boolean) {
+    localStreamRef.current?.getAudioTracks().forEach((track) => {
+      track.enabled = enabled;
+    });
+  }
+
   function teardownBrowserMedia() {
     peerConnectionRef.current?.close();
     peerConnectionRef.current = null;
@@ -161,7 +205,13 @@ export function LiveSessionClient({
   const canStart =
     state === "ready" || state === "microphone_denied" || state === "failed";
   const canEnd =
-    state === "connected" || state === "near_limit" || state === "connecting";
+    state === "connected" ||
+    state === "near_limit" ||
+    state === "awaiting_continuation_consent" ||
+    state === "connecting";
+  const canContinue =
+    !continuationConsentedAt &&
+    (state === "near_limit" || state === "awaiting_continuation_consent");
 
   return (
     <section className="panel stack" aria-labelledby="live-heading">
@@ -192,6 +242,22 @@ export function LiveSessionClient({
       </div>
 
       {error ? <p className="form-error">{error}</p> : null}
+
+      {canContinue ? (
+        <div className="session-notice" role="status">
+          <p>
+            The interview is near its 15-minute target. Continue only if you are
+            comfortable going a little longer.
+          </p>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => void continuePastTarget()}
+          >
+            Continue a little longer
+          </button>
+        </div>
+      ) : null}
 
       <div className="button-row">
         <button type="button" onClick={startSession} disabled={!canStart}>

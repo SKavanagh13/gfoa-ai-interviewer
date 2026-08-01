@@ -116,6 +116,7 @@ export type AdminInterviewDetail = {
   negativeReactionFlag: boolean | null;
   consentVersion: string | null;
   consentedAt: string | null;
+  continuationConsentedAt: string | null;
   startedAt: string | null;
   endedAt: string | null;
   durationSeconds: number | null;

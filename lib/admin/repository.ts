@@ -424,6 +424,7 @@ function mapInterviewDetail(input: {
     negativeReactionFlag: input.interview.negative_reaction_flag,
     consentVersion: input.interview.consent_version,
     consentedAt: input.interview.consented_at,
+    continuationConsentedAt: input.interview.continuation_consented_at,
     startedAt: input.interview.started_at,
     endedAt: input.interview.ended_at,
     durationSeconds: input.interview.duration_seconds,

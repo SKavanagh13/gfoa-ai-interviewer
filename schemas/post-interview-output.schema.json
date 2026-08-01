@@ -1,8 +1,168 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://gfoa.org/schemas/post-interview-output.schema.json",
-  "title": "Post-Interview Output",
-  "description": "Wave 0 placeholder. The strict analysis schema is defined in a later wave.",
+  "title": "GFOA Wave 5 Post-Interview Output",
   "type": "object",
-  "additionalProperties": true
+  "additionalProperties": false,
+  "properties": {
+    "overview": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "overall_summary": { "type": "string" },
+        "primary_takeaway": { "type": "string" },
+        "notable_additional_issue": { "type": "string" }
+      },
+      "required": [
+        "overall_summary",
+        "primary_takeaway",
+        "notable_additional_issue"
+      ]
+    },
+    "objective_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "objective": {
+            "type": "string",
+            "enum": [
+              "current_issue",
+              "enduring_concern",
+              "theory_vs_practice",
+              "recent_change",
+              "unmet_need",
+              "innovation_orientation"
+            ]
+          },
+          "narrative_summary": { "type": "string" },
+          "coverage": {
+            "type": "string",
+            "enum": [
+              "sufficiently_covered",
+              "partially_covered",
+              "not_covered",
+              "unclear"
+            ]
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["high", "moderate", "low"]
+          },
+          "structured_fields": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "field_name": { "type": "string" },
+                "value": { "type": ["string", "null"] },
+                "value_status": {
+                  "type": "string",
+                  "enum": ["supported", "not_discussed", "unclear"]
+                }
+              },
+              "required": ["field_name", "value", "value_status"]
+            }
+          },
+          "supporting_segment_ids": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "required": [
+          "objective",
+          "narrative_summary",
+          "coverage",
+          "confidence",
+          "structured_fields",
+          "supporting_segment_ids"
+        ]
+      }
+    },
+    "cross_cutting_themes": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "key_tension": { "type": "string" },
+        "recurring_concern": { "type": "string" },
+        "opportunity_signal": { "type": "string" },
+        "emerging_signal": { "type": "string" }
+      },
+      "required": [
+        "key_tension",
+        "recurring_concern",
+        "opportunity_signal",
+        "emerging_signal"
+      ]
+    },
+    "topic_tags": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "label": { "type": "string" },
+          "importance": {
+            "type": "string",
+            "enum": ["primary", "secondary"]
+          },
+          "supporting_segment_ids": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "required": ["label", "importance", "supporting_segment_ids"]
+      }
+    },
+    "representative_quotes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "quote_text": { "type": "string" },
+          "related_objective": {
+            "type": ["string", "null"],
+            "enum": [
+              "current_issue",
+              "enduring_concern",
+              "theory_vs_practice",
+              "recent_change",
+              "unmet_need",
+              "innovation_orientation",
+              null
+            ]
+          },
+          "reason_selected": { "type": "string" },
+          "proposed_segment_ids": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "required": [
+          "quote_text",
+          "related_objective",
+          "reason_selected",
+          "proposed_segment_ids"
+        ]
+      }
+    },
+    "overall_quality": {
+      "type": "string",
+      "enum": ["strong", "adequate", "limited", "unusable"]
+    },
+    "limitations": { "type": ["string", "null"] },
+    "negative_reaction_flag": { "type": ["boolean", "null"] }
+  },
+  "required": [
+    "overview",
+    "objective_results",
+    "cross_cutting_themes",
+    "topic_tags",
+    "representative_quotes",
+    "overall_quality",
+    "limitations",
+    "negative_reaction_flag"
+  ]
 }

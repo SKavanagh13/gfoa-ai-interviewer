@@ -32,9 +32,20 @@ const wave3Migration = readFileSync(
   "utf8",
 );
 
+const wave5Migration = readFileSync(
+  path.join(
+    process.cwd(),
+    "supabase",
+    "migrations",
+    "20260731170000_wave_5_post_interview_analysis.sql",
+  ),
+  "utf8",
+);
+
 const normalized = migration.toLowerCase().replace(/\s+/g, " ");
 const normalizedWave2 = wave2Migration.toLowerCase().replace(/\s+/g, " ");
 const normalizedWave3 = wave3Migration.toLowerCase().replace(/\s+/g, " ");
+const normalizedWave5 = wave5Migration.toLowerCase().replace(/\s+/g, " ");
 
 const requiredTables = [
   "participants",
@@ -267,5 +278,61 @@ describe("Wave 3 database migration", () => {
     expect(normalizedWave3).toContain("browser_connection_status = 'connected'");
     expect(normalizedWave3).toContain("sideband_connection_status = 'connected'");
     expect(normalizedWave3).toContain("and lifecycle_status = 'created'");
+  });
+});
+
+describe("Wave 5 database migration", () => {
+  it("persists quote source offsets for accepted deterministic matches", () => {
+    expect(normalizedWave5).toContain(
+      "alter table public.interview_quote_segments",
+    );
+    expect(normalizedWave5).toContain("add column start_offset integer");
+    expect(normalizedWave5).toContain("add column end_offset integer");
+    expect(normalizedWave5).toContain(
+      "interview_quote_segments_require_offsets_for_accepted",
+    );
+    expect(normalizedWave5).toContain("quote_status = 'accepted'");
+    expect(normalizedWave5).toContain(
+      "accepted quote evidence must include source offsets",
+    );
+  });
+
+  it("records eligibility atomically through a service-role RPC", () => {
+    expect(normalizedWave5).toContain(
+      "create or replace function public.record_analysis_eligibility",
+    );
+    expect(normalizedWave5).toContain("p_supporting_objective text");
+    expect(normalizedWave5).toContain("nullif(p_supporting_objective, '')");
+    expect(normalizedWave5).toContain(
+      "delete from public.analysis_eligibility_segments",
+    );
+    expect(normalizedWave5).toContain(
+      "insert into public.analysis_eligibility_segments",
+    );
+    expect(normalizedWave5).toContain(
+      "update public.interviews set analysis_eligibility",
+    );
+    expect(normalizedWave5).toContain(
+      "grant execute on function public.record_analysis_eligibility",
+    );
+    expect(normalizedWave5).toContain("to service_role");
+  });
+
+  it("persists succeeded analysis in a single RPC before marking succeeded", () => {
+    expect(normalizedWave5).toContain(
+      "create or replace function public.persist_succeeded_analysis",
+    );
+    expect(normalizedWave5).toContain("p_payload jsonb");
+    expect(normalizedWave5).toContain("current_status = 'succeeded'");
+    expect(normalizedWave5).toContain(
+      "cannot overwrite a succeeded analysis run",
+    );
+    expect(normalizedWave5).toContain("insert into public.objective_results");
+    expect(normalizedWave5).toContain("objective_count <> 6");
+    expect(normalizedWave5).toContain("insert into public.objective_result_segments");
+    expect(normalizedWave5).toContain("insert into public.interview_quotes");
+    expect(normalizedWave5).toContain("insert into public.interview_quote_segments");
+    expect(normalizedWave5).toContain("start_offset");
+    expect(normalizedWave5).toContain("update public.analysis_runs set status = 'succeeded'");
   });
 });

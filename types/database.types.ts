@@ -160,18 +160,24 @@ export type Database = {
       interview_quote_segments: {
         Row: {
           created_at: string
+          end_offset: number | null
           quote_id: string
           segment_id: string
+          start_offset: number | null
         }
         Insert: {
           created_at?: string
+          end_offset?: number | null
           quote_id: string
           segment_id: string
+          start_offset?: number | null
         }
         Update: {
           created_at?: string
+          end_offset?: number | null
           quote_id?: string
           segment_id?: string
+          start_offset?: number | null
         }
         Relationships: [
           {
@@ -691,6 +697,19 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_staff_or_admin: { Args: never; Returns: boolean }
+      persist_succeeded_analysis: {
+        Args: { p_analysis_id: string; p_payload: Json }
+        Returns: undefined
+      }
+      record_analysis_eligibility: {
+        Args: {
+          p_analysis_eligibility: Database["public"]["Enums"]["analysis_eligibility"]
+          p_interview_id: string
+          p_supporting_objective: string
+          p_supporting_segment_ids: string[]
+        }
+        Returns: undefined
+      }
       try_mark_interview_active: {
         Args: { p_interview_id: string }
         Returns: Database["public"]["Enums"]["interview_lifecycle_status"]

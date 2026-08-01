@@ -301,6 +301,8 @@ describe("Wave 5 database migration", () => {
     expect(normalizedWave5).toContain(
       "create or replace function public.record_analysis_eligibility",
     );
+    expect(normalizedWave5).toContain("p_supporting_objective text");
+    expect(normalizedWave5).toContain("nullif(p_supporting_objective, '')");
     expect(normalizedWave5).toContain(
       "delete from public.analysis_eligibility_segments",
     );
@@ -319,6 +321,11 @@ describe("Wave 5 database migration", () => {
   it("persists succeeded analysis in a single RPC before marking succeeded", () => {
     expect(normalizedWave5).toContain(
       "create or replace function public.persist_succeeded_analysis",
+    );
+    expect(normalizedWave5).toContain("p_payload jsonb");
+    expect(normalizedWave5).toContain("current_status = 'succeeded'");
+    expect(normalizedWave5).toContain(
+      "cannot overwrite a succeeded analysis run",
     );
     expect(normalizedWave5).toContain("insert into public.objective_results");
     expect(normalizedWave5).toContain("objective_count <> 6");

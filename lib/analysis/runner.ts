@@ -17,17 +17,57 @@ import {
 } from "@/lib/analysis/repository";
 import { validatePostInterviewOutput } from "@/lib/analysis/output-validation";
 import { verifyQuoteProposals } from "@/lib/analysis/quote-verification";
+import type { StructuredOutputModelResult } from "@/lib/analysis/types";
 
 export type RunPostInterviewAnalysisResult =
   | { status: "ineligible"; reason: string; participantWordCount: number }
   | { status: "failed"; analysisId?: string; errorMessage: string }
   | { status: "succeeded"; analysisId: string };
 
+export type PostInterviewAnalysisRunnerDependencies = {
+  analysisModel: string;
+  repository: Pick<
+    AnalysisRepository,
+    | "loadInterviewForAnalysis"
+    | "loadCanonicalTranscriptSegments"
+    | "recordEligibility"
+    | "createPendingAnalysisRun"
+    | "markAnalysisRunFailed"
+    | "persistSucceededAnalysis"
+  >;
+  requestEligibilityClassification: (
+    input: {
+      serializedTranscript: string;
+      segmentMap: string;
+      participantContext: Record<string, string | null>;
+    },
+  ) => Promise<StructuredOutputModelResult>;
+  requestPostInterviewAnalysis: (
+    input: {
+      serializedTranscript: string;
+      segmentMap: string;
+      participantContext: Record<string, string | null>;
+    },
+  ) => Promise<StructuredOutputModelResult>;
+};
+
 export async function runPostInterviewAnalysis(
   interviewId: string,
 ): Promise<RunPostInterviewAnalysisResult> {
   const env = getServerEnv();
-  const repository = new AnalysisRepository(createServiceRoleSupabaseClient());
+  return runPostInterviewAnalysisWithDependencies(interviewId, {
+    analysisModel: env.OPENAI_ANALYSIS_MODEL,
+    repository: new AnalysisRepository(createServiceRoleSupabaseClient()),
+    requestEligibilityClassification,
+    requestPostInterviewAnalysis,
+  });
+}
+
+export async function runPostInterviewAnalysisWithDependencies(
+  interviewId: string,
+  dependencies: PostInterviewAnalysisRunnerDependencies,
+): Promise<RunPostInterviewAnalysisResult> {
+  const repository = dependencies.repository;
   const interview = await repository.loadInterviewForAnalysis(interviewId);
 
   if (!interview) {
@@ -67,20 +107,13 @@ export async function runPostInterviewAnalysis(
     participantContext: interview.participantContext,
   };
 
-  const eligibilityResponse = await requestEligibilityClassification(modelInput);
+  const eligibilityResponse =
+    await dependencies.requestEligibilityClassification(modelInput);
 
   if (eligibilityResponse.errorMessage) {
-    await repository.recordEligibility({
-      interviewId,
-      eligibility: "ineligible_insufficient_content",
-      supportingObjective: null,
-      supportingSegmentIds: [],
-    });
-
     return {
-      status: "ineligible",
-      reason: eligibilityResponse.errorMessage,
-      participantWordCount: deterministicEligibility.participantWordCount,
+      status: "failed",
+      errorMessage: eligibilityResponse.errorMessage,
     };
   }
 
@@ -109,10 +142,11 @@ export async function runPostInterviewAnalysis(
 
   const analysisId = await repository.createPendingAnalysisRun({
     interviewId,
-    analysisModel: env.OPENAI_ANALYSIS_MODEL,
+    analysisModel: dependencies.analysisModel,
   });
 
-  const analysisResponse = await requestPostInterviewAnalysis(modelInput);
+  const analysisResponse =
+    await dependencies.requestPostInterviewAnalysis(modelInput);
 
   if (analysisResponse.errorMessage) {
     await repository.markAnalysisRunFailed(analysisId, {

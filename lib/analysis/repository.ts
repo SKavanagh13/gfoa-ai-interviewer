@@ -94,10 +94,10 @@ export class AnalysisRepository {
     supportingObjective: Database["public"]["Enums"]["objective"] | null;
     supportingSegmentIds: string[];
   }): Promise<void> {
-    const { error } = await callRpc(this.supabase, "record_analysis_eligibility", {
+    const { error } = await this.supabase.rpc("record_analysis_eligibility", {
       p_interview_id: decision.interviewId,
       p_analysis_eligibility: decision.eligibility,
-      p_supporting_objective: decision.supportingObjective,
+      p_supporting_objective: decision.supportingObjective ?? "",
       p_supporting_segment_ids: decision.supportingSegmentIds,
     });
 
@@ -174,45 +174,44 @@ export class AnalysisRepository {
     const quoteIds = input.verifiedQuotes.map(() => randomUUID());
     const themeIds = input.output.topic_tags.map(() => randomUUID());
 
-    const { error } = await callRpc(this.supabase, "persist_succeeded_analysis", {
-      p_analysis_id: input.analysisId,
-      p_overall_summary: input.output.overview.overall_summary,
-      p_primary_takeaway: input.output.overview.primary_takeaway,
-      p_additional_issue: input.output.overview.notable_additional_issue,
-      p_overall_quality: input.output.overall_quality,
-      p_key_tension: input.output.cross_cutting_themes.key_tension,
-      p_recurring_concern: input.output.cross_cutting_themes.recurring_concern,
-      p_opportunity_signal:
+    const payload: Json = {
+      overall_summary: input.output.overview.overall_summary,
+      primary_takeaway: input.output.overview.primary_takeaway,
+      additional_issue: input.output.overview.notable_additional_issue,
+      overall_quality: input.output.overall_quality,
+      key_tension: input.output.cross_cutting_themes.key_tension,
+      recurring_concern: input.output.cross_cutting_themes.recurring_concern,
+      opportunity_signal:
         input.output.cross_cutting_themes.opportunity_signal,
-      p_emerging_signal: input.output.cross_cutting_themes.emerging_signal,
-      p_limitations: input.output.limitations,
-      p_raw_structured_output: input.rawStructuredOutput,
-      p_estimated_input_tokens: input.estimatedInputTokens,
-      p_estimated_output_tokens: input.estimatedOutputTokens,
-      p_estimated_analysis_cost_usd: null,
-      p_negative_reaction_flag: input.output.negative_reaction_flag,
-      p_objective_results: input.output.objective_results.map((result) => ({
-        objective_result_id: objectiveIds.get(result.objective),
+      emerging_signal: input.output.cross_cutting_themes.emerging_signal,
+      limitations: input.output.limitations,
+      raw_structured_output: input.rawStructuredOutput,
+      estimated_input_tokens: input.estimatedInputTokens,
+      estimated_output_tokens: input.estimatedOutputTokens,
+      estimated_analysis_cost_usd: null,
+      negative_reaction_flag: input.output.negative_reaction_flag,
+      objective_results: input.output.objective_results.map((result) => ({
+        objective_result_id: requireMapValue(objectiveIds, result.objective),
         objective: result.objective,
         narrative_summary: result.narrative_summary,
         coverage: result.coverage,
         confidence: result.confidence,
         structured_fields: result.structured_fields,
       })),
-      p_objective_segments: input.output.objective_results.flatMap((result) =>
+      objective_segments: input.output.objective_results.flatMap((result) =>
         result.supporting_segment_ids.map((segmentId) => ({
-          objective_result_id: objectiveIds.get(result.objective),
+          objective_result_id: requireMapValue(objectiveIds, result.objective),
           segment_id: segmentId,
         })),
       ),
-      p_quotes: input.verifiedQuotes.map((quote, index) => ({
+      quotes: input.verifiedQuotes.map((quote, index) => ({
         quote_id: quoteIds[index],
         quote_text: quote.quote_text,
         objective: quote.objective,
         verification_status: quote.verification_status,
         reason_selected: quote.reason_selected,
       })),
-      p_quote_segments: input.verifiedQuotes.flatMap((quote, index) =>
+      quote_segments: input.verifiedQuotes.flatMap((quote, index) =>
         quote.spans.map((span) => ({
           quote_id: quoteIds[index],
           segment_id: span.segment_id,
@@ -220,17 +219,22 @@ export class AnalysisRepository {
           end_offset: span.end_offset,
         })),
       ),
-      p_theme_assignments: input.output.topic_tags.map((tag, index) => ({
+      theme_assignments: input.output.topic_tags.map((tag, index) => ({
         theme_assignment_id: themeIds[index],
         label: tag.label,
         description: tag.importance,
       })),
-      p_theme_segments: input.output.topic_tags.flatMap((tag, index) =>
+      theme_segments: input.output.topic_tags.flatMap((tag, index) =>
         tag.supporting_segment_ids.map((segmentId) => ({
           theme_assignment_id: themeIds[index],
           segment_id: segmentId,
         })),
       ),
+    };
+
+    const { error } = await this.supabase.rpc("persist_succeeded_analysis", {
+      p_analysis_id: input.analysisId,
+      p_payload: payload,
     });
 
     if (error) {
@@ -239,17 +243,14 @@ export class AnalysisRepository {
   }
 }
 
-async function callRpc(
-  supabase: SupabaseClient<Database>,
-  fn: string,
-  args: Record<string, unknown>,
-): Promise<{ error: { message: string } | null }> {
-  const rpc = supabase.rpc as unknown as (
-    functionName: string,
-    args: Record<string, unknown>,
-  ) => Promise<{ error: { message: string } | null }>;
+function requireMapValue<K, V>(map: ReadonlyMap<K, V>, key: K): V {
+  const value = map.get(key);
 
-  return rpc(fn, args);
+  if (value === undefined) {
+    throw new Error("Missing generated persistence identifier.");
+  }
+
+  return value;
 }
 
 export function buildSegmentMap(segments: readonly CanonicalTranscriptSegment[]) {

@@ -1,8 +1,10 @@
 import type { FinalTranscriptSegment } from "@/lib/interview/session-repository";
+import { containsCompletedInterviewClosing } from "@/lib/interview/completion-signal";
 
 export type SidebandParsedEvent =
   | { kind: "transcript"; segment: FinalTranscriptSegment }
   | { kind: "usage"; inputTokens?: number; outputTokens?: number }
+  | { kind: "completedClosing" }
   | { kind: "sessionEnded" }
   | { kind: "ignore" };
 
@@ -61,6 +63,10 @@ export function parseSidebandEvent(event: RealtimeEvent): SidebandParsedEvent[] 
               providerEventId: event.event_id ?? null,
             },
           });
+
+          if (containsCompletedInterviewClosing(text)) {
+            parsed.push({ kind: "completedClosing" });
+          }
         }
       }
     }

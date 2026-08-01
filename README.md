@@ -50,3 +50,9 @@ npm run db:types
 ```
 
 `types/database.types.ts` is a placeholder until local Supabase services can run and the type-generation command succeeds.
+
+## MVP readiness operations
+
+Operational readiness notes that are not locked requirements live in `docs/`.
+See `docs/readiness-ops.md` for pilot spending-alert guidance and the expected
+typecheck/build verification order.

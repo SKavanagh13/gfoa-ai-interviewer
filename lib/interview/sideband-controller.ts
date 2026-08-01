@@ -11,7 +11,12 @@ export type SidebandControllerInput = {
   WebSocketCtor?: typeof WebSocket;
 };
 
-export type TimingSignalKind = "started" | "elapsed" | "near_limit" | "hard_stop";
+export type TimingSignalKind =
+  | "started"
+  | "elapsed"
+  | "near_limit"
+  | "target_without_continuation_consent"
+  | "hard_stop";
 
 export type TimingSignalInput = {
   elapsedSeconds: number;
@@ -85,6 +90,7 @@ export async function runSidebandController(
     let startedAtMs: number | null = null;
     let elapsedUpdateTimer: ReturnType<typeof setInterval> | null = null;
     let nearLimitTimer: ReturnType<typeof setTimeout> | null = null;
+    let targetConsentTimer: ReturnType<typeof setTimeout> | null = null;
     const ws = new WebSocketImplementation(url, {
       headers: {
         Authorization: `Bearer ${env.OPENAI_API_KEY}`,
@@ -99,14 +105,8 @@ export async function runSidebandController(
     const hardCapTimer = setTimeout(() => {
       intentionalFinalization = true;
       sendTimingSignal("hard_stop");
-      ws.send(
-        JSON.stringify({
-          type: "response.create",
-          response: {
-            instructions:
-              "Briefly thank the participant and close now because the 20-minute hard limit has been reached.",
-          },
-        }),
+      sendResponseCreate(
+        "Briefly thank the participant and close now because the 20-minute hard limit has been reached.",
       );
       void hangUpRealtimeCall(input.callId).finally(() => ws.close());
     }, hardCapMs);
@@ -123,6 +123,9 @@ export async function runSidebandController(
         () => sendTimingSignal("near_limit"),
         Math.max(targetMs - NEAR_LIMIT_LEAD_SECONDS * 1000, 0),
       );
+      targetConsentTimer = setTimeout(() => {
+        void enforceTargetContinuationConsent().catch(rejectOnce);
+      }, targetMs);
       void input.repository
         .markSidebandConnected(input.interviewId)
         .catch(rejectOnce);
@@ -210,6 +213,56 @@ export async function runSidebandController(
       if (nearLimitTimer) {
         clearTimeout(nearLimitTimer);
       }
+      if (targetConsentTimer) {
+        clearTimeout(targetConsentTimer);
+      }
+    }
+
+    async function enforceTargetContinuationConsent() {
+      if (settled) {
+        return;
+      }
+
+      const hasContinuationConsent =
+        await input.repository.hasContinuationConsent(input.interviewId);
+
+      if (hasContinuationConsent) {
+        return;
+      }
+
+      intentionalFinalization = true;
+      sendTimingSignal("target_without_continuation_consent");
+      sendResponseCreate(
+        "The 15-minute target has been reached and the participant has not agreed to continue. Briefly thank the participant and close now.",
+      );
+      try {
+        await input.repository.markParticipantEnded(input.interviewId);
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Failed to record participant-ended disposition.";
+        void input.repository
+          .markTechnicalFailure(input.interviewId, message)
+          .catch(() => undefined);
+      } finally {
+        void hangUpRealtimeCall(input.callId).finally(() => ws.close());
+      }
+    }
+
+    function sendResponseCreate(instructions: string) {
+      if (ws.readyState !== WebSocket.OPEN) {
+        return;
+      }
+
+      ws.send(
+        JSON.stringify({
+          type: "response.create",
+          response: {
+            instructions,
+          },
+        }),
+      );
     }
 
     function resolveOnce() {
@@ -239,6 +292,10 @@ function timingInstructionForKind(kind: TimingSignalKind): string {
 
   if (kind === "hard_stop") {
     return "The 20-minute hard ceiling has been reached. Close immediately; do not continue the interview.";
+  }
+
+  if (kind === "target_without_continuation_consent") {
+    return "The 15-minute target has been reached without recorded participant agreement to continue. Close now; do not continue the interview.";
   }
 
   if (kind === "started") {

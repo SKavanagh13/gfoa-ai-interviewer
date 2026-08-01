@@ -173,6 +173,37 @@ export class InterviewSessionRepository {
     }
   }
 
+  async recordContinuationConsent(interviewId: string): Promise<void> {
+    const { error } = await this.supabase
+      .from("interviews")
+      .update({ continuation_consented_at: new Date().toISOString() })
+      .eq("interview_id", interviewId)
+      .is("continuation_consented_at", null)
+      .eq("lifecycle_status", "active");
+
+    if (error) {
+      throw new Error(
+        `Failed to record continuation consent: ${error.message}`,
+      );
+    }
+  }
+
+  async hasContinuationConsent(interviewId: string): Promise<boolean> {
+    const { data, error } = await this.supabase
+      .from("interviews")
+      .select("continuation_consented_at")
+      .eq("interview_id", interviewId)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(
+        `Failed to read continuation consent: ${error.message}`,
+      );
+    }
+
+    return Boolean(data?.continuation_consented_at);
+  }
+
   async markTranscriptStable(
     interviewId: string,
     timeoutMs: number,

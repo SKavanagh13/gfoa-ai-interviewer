@@ -19,6 +19,7 @@ describe("Wave 3 route and runtime boundaries", () => {
         "route.ts",
       ],
       ["app", "api", "interview", "[interviewId]", "end", "route.ts"],
+      ["app", "api", "interview", "[interviewId]", "continue", "route.ts"],
     ]) {
       const source = readWorkspaceFile(...route);
 
@@ -92,5 +93,26 @@ describe("Wave 3 route and runtime boundaries", () => {
     expect(repository).toMatch(
       /markSidebandConnected[\s\S]*tryMarkInterviewActive/,
     );
+  });
+
+  it("requires recorded continuation consent before normal browser continuation past target", () => {
+    const client = readWorkspaceFile(
+      "app",
+      "interview",
+      "created",
+      "live-session-client.tsx",
+    );
+    const controller = readWorkspaceFile(
+      "lib",
+      "interview",
+      "sideband-controller.ts",
+    );
+
+    expect(client).toContain("awaiting_continuation_consent");
+    expect(client).toContain("/api/interview/${interviewId}/continue");
+    expect(client).toContain("setMicrophoneEnabled(false)");
+    expect(client).toContain("setMicrophoneEnabled(true)");
+    expect(controller).toContain("hasContinuationConsent");
+    expect(controller).toContain("target_without_continuation_consent");
   });
 });

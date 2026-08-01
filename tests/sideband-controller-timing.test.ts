@@ -146,6 +146,7 @@ describe("sideband controller timing signals", () => {
       markTranscriptStable: vi.fn(async () => {}),
       markTranscriptFailed: vi.fn(async () => {}),
       markTechnicalFailure: vi.fn(async () => {}),
+      hasContinuationConsent: vi.fn(async () => true),
     };
     const controllerPromise = runSidebandController({
       interviewId: "interview-1",
@@ -202,6 +203,7 @@ describe("sideband controller timing signals", () => {
       markTranscriptStable: vi.fn(async () => {}),
       markTranscriptFailed: vi.fn(async () => {}),
       markTechnicalFailure: vi.fn(async () => {}),
+      hasContinuationConsent: vi.fn(async () => true),
     };
     const controllerPromise = runSidebandController({
       interviewId: "interview-1",
@@ -243,6 +245,100 @@ describe("sideband controller timing signals", () => {
       5000,
     );
     expect(repository.markTranscriptFailed).not.toHaveBeenCalled();
+  });
+
+  it("closes at the 15-minute target when continuation consent is not recorded", async () => {
+    const repository = {
+      markSidebandConnected: vi.fn(async () => {}),
+      insertFinalTranscriptSegment: vi.fn(async () => {}),
+      recordUsage: vi.fn(async () => {}),
+      markTranscriptStable: vi.fn(async () => {}),
+      markTranscriptFailed: vi.fn(async () => {}),
+      markTechnicalFailure: vi.fn(async () => {}),
+      markParticipantEnded: vi.fn(async () => {}),
+      hasContinuationConsent: vi.fn(async () => false),
+    };
+    const controllerPromise = runSidebandController({
+      interviewId: "interview-1",
+      callId: "rtc_123",
+      repository: repository as never,
+      WebSocketCtor: FakeWebSocket as never,
+    });
+    const ws = FakeWebSocket.instances[0];
+
+    ws.emit("open");
+    await vi.advanceTimersByTimeAsync(900_000);
+    await controllerPromise;
+
+    const sentTimingItems = parseSentTimingItems(ws);
+    const sentResponseCreates = ws.sentMessages
+      .map(
+        (message) =>
+          JSON.parse(message) as {
+            type?: string;
+            response?: { instructions?: string };
+          },
+      )
+      .filter((message) => message.type === "response.create");
+
+    expect(repository.hasContinuationConsent).toHaveBeenCalledWith(
+      "interview-1",
+    );
+    expect(
+      sentTimingItems.some((message) =>
+        message.item?.content?.[0]?.text?.includes(
+          "without recorded participant agreement",
+        ),
+      ),
+    ).toBe(true);
+    expect(sentResponseCreates).toHaveLength(1);
+    expect(sentResponseCreates[0].response?.instructions).toContain(
+      "has not agreed to continue",
+    );
+    expect(hangUpRealtimeCall).toHaveBeenCalledWith("rtc_123");
+    expect(repository.markParticipantEnded).toHaveBeenCalledWith(
+      "interview-1",
+    );
+    expect(repository.markTranscriptStable).toHaveBeenCalledWith(
+      "interview-1",
+      5000,
+    );
+    expect(repository.markTranscriptFailed).not.toHaveBeenCalled();
+  });
+
+  it("still hangs up when recording the target-close disposition fails", async () => {
+    const repository = {
+      markSidebandConnected: vi.fn(async () => {}),
+      insertFinalTranscriptSegment: vi.fn(async () => {}),
+      recordUsage: vi.fn(async () => {}),
+      markTranscriptStable: vi.fn(async () => {}),
+      markTranscriptFailed: vi.fn(async () => {}),
+      markTechnicalFailure: vi.fn(async () => {}),
+      markParticipantEnded: vi.fn(async () => {
+        throw new Error("database unavailable");
+      }),
+      hasContinuationConsent: vi.fn(async () => false),
+    };
+    const controllerPromise = runSidebandController({
+      interviewId: "interview-1",
+      callId: "rtc_123",
+      repository: repository as never,
+      WebSocketCtor: FakeWebSocket as never,
+    });
+    const ws = FakeWebSocket.instances[0];
+
+    ws.emit("open");
+    await vi.advanceTimersByTimeAsync(900_000);
+    await controllerPromise;
+
+    expect(repository.markParticipantEnded).toHaveBeenCalledWith(
+      "interview-1",
+    );
+    expect(repository.markTechnicalFailure).toHaveBeenCalledWith(
+      "interview-1",
+      "database unavailable",
+    );
+    expect(hangUpRealtimeCall).toHaveBeenCalledWith("rtc_123");
   });
 });
 

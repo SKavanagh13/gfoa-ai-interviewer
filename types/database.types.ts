@@ -263,6 +263,7 @@ export type Database = {
           browser_connection_status: Database["public"]["Enums"]["connection_status"]
           consent_version: string | null
           consented_at: string | null
+          continuation_consented_at: string | null
           cost_category: Database["public"]["Enums"]["cost_category"] | null
           created_at: string
           duration_seconds: number | null
@@ -302,6 +303,7 @@ export type Database = {
           browser_connection_status?: Database["public"]["Enums"]["connection_status"]
           consent_version?: string | null
           consented_at?: string | null
+          continuation_consented_at?: string | null
           cost_category?: Database["public"]["Enums"]["cost_category"] | null
           created_at?: string
           duration_seconds?: number | null
@@ -343,6 +345,7 @@ export type Database = {
           browser_connection_status?: Database["public"]["Enums"]["connection_status"]
           consent_version?: string | null
           consented_at?: string | null
+          continuation_consented_at?: string | null
           cost_category?: Database["public"]["Enums"]["cost_category"] | null
           created_at?: string
           duration_seconds?: number | null

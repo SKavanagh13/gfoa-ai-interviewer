@@ -15,11 +15,16 @@ records exist.
 - The application attempts to match the email to GFOA’s membership
   database.
 
-- If a match is found, the participant confirms or corrects the profile
-  information shown.
+- The participant confirms the email address before proceeding.
 
-- If no match is found, the application collects only the minimum
-  required profile information.
+- If a match is found, available profile information may be linked to the
+  interview record for authorized review and later analysis without
+  asking the participant to confirm or correct profile fields during the
+  MVP intake flow.
+
+- If no match is found, the application proceeds without collecting
+  additional participant profile fields. Missing profile fields remain
+  null or “not collected.”
 
 - The application creates a stable participant identifier. Direct
   identifiers remain in the participant layer and are not copied into

@@ -25,14 +25,13 @@ complete transcript should be analyzed against this specification.
 
 The voice interviewer should not spend interview time asking the
 participant for their name, title, organization, government type, or
-similar administrative information. Participant identity and profile
-context should be collected by the application before the interview
-begins.
+similar administrative information. For the MVP, participant-facing
+intake should collect only the participant's email address and ask the
+participant to confirm that email before the interview begins.
 
-The preferred intake method is for the participant to enter an email
-address. The application should use that email address to look for a
-matching record in GFOA’s membership database and retrieve available
-profile information, such as:
+The application may use that email address to look for a matching record
+in GFOA’s membership database and retrieve available profile information
+without asking the participant to supply it during MVP intake, such as:
 
 - title;
 
@@ -48,15 +47,14 @@ profile information, such as:
 
 ### Confirmation and Missing Information
 
-If a matching member record is found, the application should present the
-key information for confirmation before the interview starts. Because
-membership records may be incomplete or outdated, the participant should
-be able to confirm or correct the information.
+If a matching member record is found, the application may attach
+available profile context to the interview record for authorized review
+and later analysis, subject to the identity and privacy boundaries below.
 
-If no match is found, the application should request only the minimum
-information needed for the project. This fallback intake should occur in
-the application interface, not through the voice interviewer, unless a
-technical failure makes that impossible.
+If no match is found, the application should not ask the participant to
+enter additional profile details during the MVP. Missing profile fields
+should remain null or “not collected.” Membership linkage and enrichment
+can be completed later outside the participant interview flow.
 
 ### Linkage and Privacy
 

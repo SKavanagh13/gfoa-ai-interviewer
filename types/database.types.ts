@@ -697,6 +697,16 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_staff_or_admin: { Args: never; Returns: boolean }
+      load_admin_review_participant_context: {
+        Args: { p_interview_id: string }
+        Returns: {
+          experience_band: string
+          government_type: string
+          organization_size_band: string
+          participant_id: string
+          state_or_region: string
+        }[]
+      }
       persist_succeeded_analysis: {
         Args: { p_analysis_id: string; p_payload: Json }
         Returns: undefined
@@ -713,6 +723,10 @@ export type Database = {
       try_mark_interview_active: {
         Args: { p_interview_id: string }
         Returns: Database["public"]["Enums"]["interview_lifecycle_status"]
+      }
+      update_negative_reaction_flag: {
+        Args: { p_interview_id: string; p_value: boolean }
+        Returns: undefined
       }
     }
     Enums: {

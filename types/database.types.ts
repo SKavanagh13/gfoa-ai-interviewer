@@ -723,6 +723,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      refresh_interview_total_cost: {
+        Args: { p_interview_id: string }
+        Returns: undefined
+      }
       try_mark_interview_active: {
         Args: { p_interview_id: string }
         Returns: Database["public"]["Enums"]["interview_lifecycle_status"]

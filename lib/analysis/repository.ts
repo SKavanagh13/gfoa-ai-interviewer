@@ -139,9 +139,10 @@ export class AnalysisRepository {
       rawStructuredOutput?: Json | null;
       estimatedInputTokens?: number | null;
       estimatedOutputTokens?: number | null;
+      estimatedAnalysisCostUsd?: number | null;
     },
   ): Promise<void> {
-    const { error } = await this.supabase
+    const { data, error } = await this.supabase
       .from("analysis_runs")
       .update({
         status: "failed",
@@ -149,12 +150,17 @@ export class AnalysisRepository {
         raw_structured_output: values.rawStructuredOutput ?? null,
         estimated_input_tokens: values.estimatedInputTokens ?? null,
         estimated_output_tokens: values.estimatedOutputTokens ?? null,
+        estimated_analysis_cost_usd: values.estimatedAnalysisCostUsd ?? null,
       })
-      .eq("analysis_id", analysisId);
+      .eq("analysis_id", analysisId)
+      .select("interview_id")
+      .single();
 
     if (error) {
       throw new Error(`Failed to mark analysis failed: ${error.message}`);
     }
+
+    await this.refreshInterviewTotalCost(data.interview_id);
   }
 
   async persistSucceededAnalysis(input: {
@@ -163,6 +169,7 @@ export class AnalysisRepository {
     rawStructuredOutput: Json;
     estimatedInputTokens: number | null;
     estimatedOutputTokens: number | null;
+    estimatedAnalysisCostUsd: number | null;
     verifiedQuotes: VerifiedQuoteForPersistence[];
   }): Promise<void> {
     const objectiveIds = new Map(
@@ -188,7 +195,7 @@ export class AnalysisRepository {
       raw_structured_output: input.rawStructuredOutput,
       estimated_input_tokens: input.estimatedInputTokens,
       estimated_output_tokens: input.estimatedOutputTokens,
-      estimated_analysis_cost_usd: null,
+      estimated_analysis_cost_usd: input.estimatedAnalysisCostUsd,
       negative_reaction_flag: input.output.negative_reaction_flag,
       objective_results: input.output.objective_results.map((result) => ({
         objective_result_id: requireMapValue(objectiveIds, result.objective),
@@ -239,6 +246,34 @@ export class AnalysisRepository {
 
     if (error) {
       throw new Error(`Failed to persist succeeded analysis: ${error.message}`);
+    }
+
+    await this.refreshInterviewTotalCostByAnalysisId(input.analysisId);
+  }
+
+  private async refreshInterviewTotalCostByAnalysisId(
+    analysisId: string,
+  ): Promise<void> {
+    const { data, error } = await this.supabase
+      .from("analysis_runs")
+      .select("interview_id")
+      .eq("analysis_id", analysisId)
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to load analysis interview: ${error.message}`);
+    }
+
+    await this.refreshInterviewTotalCost(data.interview_id);
+  }
+
+  private async refreshInterviewTotalCost(interviewId: string): Promise<void> {
+    const { error } = await this.supabase.rpc("refresh_interview_total_cost", {
+      p_interview_id: interviewId,
+    });
+
+    if (error) {
+      throw new Error(`Failed to refresh interview total cost: ${error.message}`);
     }
   }
 }

@@ -88,8 +88,12 @@ function createDependencies(
     markAnalysisRunFailed: [] as Array<{
       analysisId: string;
       errorMessage: string;
+      estimatedAnalysisCostUsd: number | null | undefined;
     }>,
-    persistSucceededAnalysis: [] as Array<{ analysisId: string }>,
+    persistSucceededAnalysis: [] as Array<{
+      analysisId: string;
+      estimatedAnalysisCostUsd: number | null;
+    }>,
     eligibilityRequests: 0,
     analysisRequests: 0,
   };
@@ -128,10 +132,14 @@ function createDependencies(
         calls.markAnalysisRunFailed.push({
           analysisId,
           errorMessage: values.errorMessage,
+          estimatedAnalysisCostUsd: values.estimatedAnalysisCostUsd,
         });
       },
       async persistSucceededAnalysis(input) {
-        calls.persistSucceededAnalysis.push({ analysisId: input.analysisId });
+        calls.persistSucceededAnalysis.push({
+          analysisId: input.analysisId,
+          estimatedAnalysisCostUsd: input.estimatedAnalysisCostUsd,
+        });
       },
     },
     async requestEligibilityClassification() {
@@ -247,6 +255,53 @@ describe("Wave 5 analysis runner", () => {
       { interviewId: "interview-1", analysisModel: "gpt-4o-mini" },
     ]);
     expect(base.calls.persistSucceededAnalysis).toHaveLength(1);
+  });
+
+  it("persists analysis estimated cost from response usage", async () => {
+    const base = createDependencies({
+      async requestPostInterviewAnalysis() {
+        return {
+          parsed: validOutput(),
+          rawResponse: {},
+          usage: { inputTokens: 1_000_000, outputTokens: 500_000 },
+          refusal: null,
+          errorMessage: null,
+        };
+      },
+    });
+
+    await expect(
+      runPostInterviewAnalysisWithDependencies("interview-1", base.dependencies),
+    ).resolves.toMatchObject({ status: "succeeded" });
+
+    expect(base.calls.persistSucceededAnalysis[0]).toMatchObject({
+      analysisId: "analysis-1",
+      estimatedAnalysisCostUsd: 0.45,
+    });
+  });
+
+  it("records failed analysis estimated cost when a model error includes usage", async () => {
+    const base = createDependencies({
+      async requestPostInterviewAnalysis() {
+        return {
+          parsed: null,
+          rawResponse: { error: { message: "bad output" } },
+          usage: { inputTokens: 1_000_000, outputTokens: 500_000 },
+          refusal: null,
+          errorMessage: "bad output",
+        };
+      },
+    });
+
+    await expect(
+      runPostInterviewAnalysisWithDependencies("interview-1", base.dependencies),
+    ).resolves.toMatchObject({ status: "failed" });
+
+    expect(base.calls.markAnalysisRunFailed[0]).toMatchObject({
+      analysisId: "analysis-1",
+      errorMessage: "bad output",
+      estimatedAnalysisCostUsd: 0.45,
+    });
   });
 
   it("reruns create new analysis runs without reusing the prior analysis ID", async () => {

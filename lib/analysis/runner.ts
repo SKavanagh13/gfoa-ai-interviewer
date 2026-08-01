@@ -18,6 +18,7 @@ import {
 import { validatePostInterviewOutput } from "@/lib/analysis/output-validation";
 import { verifyQuoteProposals } from "@/lib/analysis/quote-verification";
 import type { StructuredOutputModelResult } from "@/lib/analysis/types";
+import { estimateModelCostUsd } from "@/lib/cost-estimation";
 
 export type RunPostInterviewAnalysisResult =
   | { status: "ineligible"; reason: string; participantWordCount: number }
@@ -154,6 +155,11 @@ export async function runPostInterviewAnalysisWithDependencies(
       rawStructuredOutput: analysisResponse.rawResponse,
       estimatedInputTokens: analysisResponse.usage.inputTokens,
       estimatedOutputTokens: analysisResponse.usage.outputTokens,
+      estimatedAnalysisCostUsd: estimateModelCostUsd({
+        model: dependencies.analysisModel,
+        inputTokens: analysisResponse.usage.inputTokens,
+        outputTokens: analysisResponse.usage.outputTokens,
+      }),
     });
     return {
       status: "failed",
@@ -173,6 +179,11 @@ export async function runPostInterviewAnalysisWithDependencies(
       rawStructuredOutput: analysisResponse.rawResponse,
       estimatedInputTokens: analysisResponse.usage.inputTokens,
       estimatedOutputTokens: analysisResponse.usage.outputTokens,
+      estimatedAnalysisCostUsd: estimateModelCostUsd({
+        model: dependencies.analysisModel,
+        inputTokens: analysisResponse.usage.inputTokens,
+        outputTokens: analysisResponse.usage.outputTokens,
+      }),
     });
     return { status: "failed", analysisId, errorMessage: validation.errorMessage };
   }
@@ -189,6 +200,11 @@ export async function runPostInterviewAnalysisWithDependencies(
       rawStructuredOutput: analysisResponse.rawResponse,
       estimatedInputTokens: analysisResponse.usage.inputTokens,
       estimatedOutputTokens: analysisResponse.usage.outputTokens,
+      estimatedAnalysisCostUsd: estimateModelCostUsd({
+        model: dependencies.analysisModel,
+        inputTokens: analysisResponse.usage.inputTokens,
+        outputTokens: analysisResponse.usage.outputTokens,
+      }),
       verifiedQuotes,
     });
   } catch (error) {
@@ -201,6 +217,11 @@ export async function runPostInterviewAnalysisWithDependencies(
       rawStructuredOutput: analysisResponse.rawResponse,
       estimatedInputTokens: analysisResponse.usage.inputTokens,
       estimatedOutputTokens: analysisResponse.usage.outputTokens,
+      estimatedAnalysisCostUsd: estimateModelCostUsd({
+        model: dependencies.analysisModel,
+        inputTokens: analysisResponse.usage.inputTokens,
+        outputTokens: analysisResponse.usage.outputTokens,
+      }),
     });
     return { status: "failed", analysisId, errorMessage };
   }

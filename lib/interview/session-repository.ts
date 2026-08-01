@@ -6,6 +6,7 @@ import {
   digestParticipantSessionToken,
   tokenDigestMatches,
 } from "@/lib/interview/participant-session";
+import { estimateModelCostUsd } from "@/lib/cost-estimation";
 
 export type LiveInterviewContext = {
   interviewId: string;
@@ -33,6 +34,7 @@ export class InterviewSessionRepository {
   constructor(
     private readonly supabase: SupabaseClient<Database>,
     private readonly tokenSecret: string,
+    private readonly realtimeModel: string,
   ) {}
 
   async validateParticipantSession(
@@ -163,6 +165,7 @@ export class InterviewSessionRepository {
         end_disposition: "participant_ended",
         ended_at: new Date().toISOString(),
         transcript_status: "stabilizing",
+        cost_category: "abandoned",
       })
       .eq("interview_id", interviewId)
       .is("end_disposition", null)
@@ -181,6 +184,7 @@ export class InterviewSessionRepository {
         end_disposition: "completed",
         ended_at: new Date().toISOString(),
         transcript_status: "stabilizing",
+        cost_category: "completed",
       })
       .eq("interview_id", interviewId)
       .is("end_disposition", null)
@@ -333,11 +337,21 @@ export class InterviewSessionRepository {
       throw new Error(`Failed to read usage totals: ${error.message}`);
     }
 
+    const estimatedInputTokens =
+      (data.estimated_input_tokens ?? 0) + (usage.inputTokens ?? 0);
+    const estimatedOutputTokens =
+      (data.estimated_output_tokens ?? 0) + (usage.outputTokens ?? 0);
+    const estimatedLiveCostUsd = estimateModelCostUsd({
+      model: this.realtimeModel,
+      inputTokens: estimatedInputTokens,
+      outputTokens: estimatedOutputTokens,
+    });
+
     await this.updateInterview(interviewId, {
-      estimated_input_tokens:
-        (data.estimated_input_tokens ?? 0) + (usage.inputTokens ?? 0),
-      estimated_output_tokens:
-        (data.estimated_output_tokens ?? 0) + (usage.outputTokens ?? 0),
+      estimated_input_tokens: estimatedInputTokens,
+      estimated_output_tokens: estimatedOutputTokens,
+      estimated_live_cost_usd: estimatedLiveCostUsd,
+      estimated_total_cost_usd: estimatedLiveCostUsd,
     });
   }
 

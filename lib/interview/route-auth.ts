@@ -13,6 +13,7 @@ export async function createAuthorizedParticipantRepository(
   const repository = new InterviewSessionRepository(
     createServiceRoleSupabaseClient(),
     env.PARTICIPANT_SESSION_TOKEN_SECRET,
+    env.OPENAI_REALTIME_MODEL,
   );
   const cookieStore = await cookies();
   const rawToken = cookieStore.get(participantSessionCookieName(interviewId))?.value;

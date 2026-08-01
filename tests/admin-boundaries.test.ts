@@ -49,4 +49,29 @@ describe("Wave 6 admin source boundaries", () => {
     expect(adminAppSource.toLowerCase()).not.toContain("taxonomy");
     expect(adminAppSource.toLowerCase()).not.toContain("recommendation");
   });
+
+  it("keeps private storage paths path-only until an authorized signed access route exists", () => {
+    const page = readFileSync(
+      path.join(
+        process.cwd(),
+        "app",
+        "admin",
+        "interviews",
+        "[interviewId]",
+        "page.tsx",
+      ),
+      "utf8",
+    );
+    const storageReadiness = readFileSync(
+      path.join(process.cwd(), "docs", "storage-readiness.md"),
+      "utf8",
+    );
+
+    expect(page).toContain("object paths only");
+    expect(page).toContain("does not expose playable audio");
+    expect(page).not.toContain("createSignedUrl");
+    expect(page).not.toContain("signedUrl");
+    expect(storageReadiness).toContain("Do not make either bucket public");
+    expect(storageReadiness).toContain("requires `requireStaffOrAdmin()`");
+  });
 });

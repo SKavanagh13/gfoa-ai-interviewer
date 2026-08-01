@@ -62,6 +62,16 @@ const stabilizationContinuationConsentMigration = readFileSync(
   "utf8",
 );
 
+const stabilizationPrivateStorageMigration = readFileSync(
+  path.join(
+    process.cwd(),
+    "supabase",
+    "migrations",
+    "20260801140000_stabilization_private_storage_buckets.sql",
+  ),
+  "utf8",
+);
+
 const normalized = migration.toLowerCase().replace(/\s+/g, " ");
 const normalizedWave2 = wave2Migration.toLowerCase().replace(/\s+/g, " ");
 const normalizedWave3 = wave3Migration.toLowerCase().replace(/\s+/g, " ");
@@ -69,6 +79,8 @@ const normalizedWave5 = wave5Migration.toLowerCase().replace(/\s+/g, " ");
 const normalizedWave6 = wave6Migration.toLowerCase().replace(/\s+/g, " ");
 const normalizedStabilizationContinuationConsent =
   stabilizationContinuationConsentMigration.toLowerCase().replace(/\s+/g, " ");
+const normalizedStabilizationPrivateStorage =
+  stabilizationPrivateStorageMigration.toLowerCase().replace(/\s+/g, " ");
 
 const requiredTables = [
   "participants",
@@ -402,6 +414,30 @@ describe("Stabilization continuation consent migration", () => {
     );
     expect(normalizedStabilizationContinuationConsent).toContain(
       "participant affirmatively agreed to continue past the 15-minute target",
+    );
+  });
+});
+
+describe("Stabilization private storage migration", () => {
+  it("creates private interview audio and transcript buckets", () => {
+    expect(normalizedStabilizationPrivateStorage).toContain(
+      "insert into storage.buckets",
+    );
+    expect(normalizedStabilizationPrivateStorage).toContain("'interview-audio'");
+    expect(normalizedStabilizationPrivateStorage).toContain(
+      "'interview-transcripts'",
+    );
+    expect(normalizedStabilizationPrivateStorage).toContain("public = false");
+    expect(normalizedStabilizationPrivateStorage).not.toContain("public = true");
+  });
+
+  it("does not add direct client storage object access policies", () => {
+    expect(normalizedStabilizationPrivateStorage).not.toContain("create policy");
+    expect(normalizedStabilizationPrivateStorage).not.toContain(
+      "on storage.objects",
+    );
+    expect(normalizedStabilizationPrivateStorage).toContain(
+      "direct object access remains unavailable",
     );
   });
 });

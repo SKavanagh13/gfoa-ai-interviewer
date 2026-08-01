@@ -223,9 +223,9 @@ export default async function AdminInterviewPage({
         <Definition label="Audio path" value={detail.audioStoragePath} />
         <Definition label="Transcript file path" value={detail.transcriptStoragePath} />
         <p className="muted">
-          Storage buckets and private signed access are not configured in this
-          repository yet, so Wave 6 does not expose playable audio or file
-          download URLs. Canonical review uses the transcript segments below.
+          Interview file buckets are private. This MVP review surface displays
+          object paths only and does not expose playable audio, public URLs, or
+          file downloads. Canonical review uses the transcript segments below.
         </p>
       </RecordPanel>
 

@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { COMPLETED_INTERVIEW_CLOSING_SENTENCE } from "@/lib/interview/completion-signal";
 
 export type LivePromptContext = {
   governmentType?: string | null;
@@ -24,6 +25,7 @@ export function buildLiveInterviewPrompt(context: LivePromptContext): string {
     "Do not ask administrative intake questions such as name, title, organization, email, or membership identifier.",
     `Target duration: ${context.targetSeconds} seconds. Hard ceiling: ${context.hardCapSeconds} seconds.`,
     "When the application signals the near-limit point, compress optional follow-ups and perform the approved time check-in.",
+    `When you have completed the normal closing described in the locked guide, end your final response with this exact sentence: "${COMPLETED_INTERVIEW_CLOSING_SENTENCE}"`,
     participantContext,
     "Locked Operating Principles:",
     operatingPrinciples,

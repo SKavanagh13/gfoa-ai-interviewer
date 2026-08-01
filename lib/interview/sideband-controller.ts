@@ -163,6 +163,8 @@ export async function runSidebandController(
           );
         } else if (parsed.kind === "usage") {
           await input.repository.recordUsage(input.interviewId, parsed);
+        } else if (parsed.kind === "completedClosing") {
+          await finalizeCompletedInterview();
         } else if (parsed.kind === "sessionEnded") {
           sawEndSignal = true;
         }
@@ -242,6 +244,28 @@ export async function runSidebandController(
           error instanceof Error
             ? error.message
             : "Failed to record participant-ended disposition.";
+        void input.repository
+          .markTechnicalFailure(input.interviewId, message)
+          .catch(() => undefined);
+      } finally {
+        void hangUpRealtimeCall(input.callId).finally(() => ws.close());
+      }
+    }
+
+    async function finalizeCompletedInterview() {
+      if (settled || intentionalFinalization) {
+        return;
+      }
+
+      intentionalFinalization = true;
+
+      try {
+        await input.repository.markCompleted(input.interviewId);
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Failed to record completed disposition.";
         void input.repository
           .markTechnicalFailure(input.interviewId, message)
           .catch(() => undefined);

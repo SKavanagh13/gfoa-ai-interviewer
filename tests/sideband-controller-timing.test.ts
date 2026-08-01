@@ -5,6 +5,7 @@ import {
   runSidebandController,
   shouldSendNearLimitSignal,
 } from "@/lib/interview/sideband-controller";
+import { COMPLETED_INTERVIEW_CLOSING_SENTENCE } from "@/lib/interview/completion-signal";
 
 vi.mock("@/lib/openai/realtime", () => ({
   hangUpRealtimeCall: vi.fn(async () => {}),
@@ -189,6 +190,122 @@ describe("sideband controller timing signals", () => {
     ws.emit("message", JSON.stringify({ type: "session.ended" }) as never);
     ws.close();
     await controllerPromise;
+    expect(repository.markTranscriptStable).toHaveBeenCalledWith(
+      "interview-1",
+      5000,
+    );
+  });
+
+  it("marks completed from the finalized assistant closing signal", async () => {
+    const repository = {
+      markSidebandConnected: vi.fn(async () => {}),
+      insertFinalTranscriptSegment: vi.fn(async () => {}),
+      recordUsage: vi.fn(async () => {}),
+      markTranscriptStable: vi.fn(async () => {}),
+      markTranscriptFailed: vi.fn(async () => {}),
+      markTechnicalFailure: vi.fn(async () => {}),
+      markCompleted: vi.fn(async () => {}),
+      hasContinuationConsent: vi.fn(async () => true),
+    };
+    const controllerPromise = runSidebandController({
+      interviewId: "interview-1",
+      callId: "rtc_123",
+      repository: repository as never,
+      WebSocketCtor: FakeWebSocket as never,
+    });
+    const ws = FakeWebSocket.instances[0];
+
+    ws.emit("open");
+    ws.emit(
+      "message",
+      JSON.stringify({
+        type: "response.done",
+        event_id: "evt_complete",
+        response: {
+          status: "completed",
+          output: [
+            {
+              role: "assistant",
+              content: [
+                {
+                  type: "output_audio",
+                  transcript: `Before we wrap up, is there anything else GFOA should understand? ${COMPLETED_INTERVIEW_CLOSING_SENTENCE}`,
+                },
+              ],
+            },
+          ],
+        },
+      }) as never,
+    );
+    await controllerPromise;
+
+    expect(repository.insertFinalTranscriptSegment).toHaveBeenCalledWith(
+      "interview-1",
+      expect.objectContaining({
+        speaker: "interviewer",
+        providerEventId: "evt_complete",
+      }),
+    );
+    expect(repository.markCompleted).toHaveBeenCalledWith("interview-1");
+    expect(hangUpRealtimeCall).toHaveBeenCalledWith("rtc_123");
+    expect(repository.markTranscriptStable).toHaveBeenCalledWith(
+      "interview-1",
+      5000,
+    );
+    expect(repository.markTranscriptFailed).not.toHaveBeenCalled();
+  });
+
+  it("still hangs up when recording the completed disposition fails", async () => {
+    const repository = {
+      markSidebandConnected: vi.fn(async () => {}),
+      insertFinalTranscriptSegment: vi.fn(async () => {}),
+      recordUsage: vi.fn(async () => {}),
+      markTranscriptStable: vi.fn(async () => {}),
+      markTranscriptFailed: vi.fn(async () => {}),
+      markTechnicalFailure: vi.fn(async () => {}),
+      markCompleted: vi.fn(async () => {
+        throw new Error("database unavailable");
+      }),
+      hasContinuationConsent: vi.fn(async () => true),
+    };
+    const controllerPromise = runSidebandController({
+      interviewId: "interview-1",
+      callId: "rtc_123",
+      repository: repository as never,
+      WebSocketCtor: FakeWebSocket as never,
+    });
+    const ws = FakeWebSocket.instances[0];
+
+    ws.emit("open");
+    ws.emit(
+      "message",
+      JSON.stringify({
+        type: "response.done",
+        event_id: "evt_complete",
+        response: {
+          status: "completed",
+          output: [
+            {
+              role: "assistant",
+              content: [
+                {
+                  type: "output_audio",
+                  transcript: COMPLETED_INTERVIEW_CLOSING_SENTENCE,
+                },
+              ],
+            },
+          ],
+        },
+      }) as never,
+    );
+    await controllerPromise;
+
+    expect(repository.markCompleted).toHaveBeenCalledWith("interview-1");
+    expect(repository.markTechnicalFailure).toHaveBeenCalledWith(
+      "interview-1",
+      "database unavailable",
+    );
+    expect(hangUpRealtimeCall).toHaveBeenCalledWith("rtc_123");
     expect(repository.markTranscriptStable).toHaveBeenCalledWith(
       "interview-1",
       5000,

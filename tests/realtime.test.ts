@@ -70,6 +70,9 @@ describe("OpenAI Realtime client", () => {
     expect(payload.instructions).toContain("Locked Operating Principles");
     expect(payload.instructions).toContain("Locked Interview Guide");
     expect(payload.instructions).toContain("Do not perform post-interview analysis");
+    expect(payload.instructions).toContain(
+      "Thank you for sharing your perspective with GFOA.",
+    );
   });
 
   it("returns the SDP answer and never returns the permanent API key", async () => {

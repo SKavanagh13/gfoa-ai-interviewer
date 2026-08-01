@@ -72,6 +72,16 @@ const stabilizationPrivateStorageMigration = readFileSync(
   "utf8",
 );
 
+const stabilizationCostTotalsMigration = readFileSync(
+  path.join(
+    process.cwd(),
+    "supabase",
+    "migrations",
+    "20260801153000_stabilization_cost_totals.sql",
+  ),
+  "utf8",
+);
+
 const normalized = migration.toLowerCase().replace(/\s+/g, " ");
 const normalizedWave2 = wave2Migration.toLowerCase().replace(/\s+/g, " ");
 const normalizedWave3 = wave3Migration.toLowerCase().replace(/\s+/g, " ");
@@ -81,6 +91,8 @@ const normalizedStabilizationContinuationConsent =
   stabilizationContinuationConsentMigration.toLowerCase().replace(/\s+/g, " ");
 const normalizedStabilizationPrivateStorage =
   stabilizationPrivateStorageMigration.toLowerCase().replace(/\s+/g, " ");
+const normalizedStabilizationCostTotals =
+  stabilizationCostTotalsMigration.toLowerCase().replace(/\s+/g, " ");
 
 const requiredTables = [
   "participants",
@@ -438,6 +450,23 @@ describe("Stabilization private storage migration", () => {
     );
     expect(normalizedStabilizationPrivateStorage).toContain(
       "direct object access remains unavailable",
+    );
+  });
+});
+
+describe("Stabilization cost totals migration", () => {
+  it("refreshes total interview cost from live cost plus every analysis run", () => {
+    expect(normalizedStabilizationCostTotals).toContain(
+      "create or replace function public.refresh_interview_total_cost",
+    );
+    expect(normalizedStabilizationCostTotals).toContain(
+      "sum(estimated_analysis_cost_usd)",
+    );
+    expect(normalizedStabilizationCostTotals).toContain(
+      "coalesce(live_cost, 0) + analysis_cost",
+    );
+    expect(normalizedStabilizationCostTotals).toContain(
+      "grant execute on function public.refresh_interview_total_cost(uuid) to service_role",
     );
   });
 });

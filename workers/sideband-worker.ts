@@ -48,6 +48,7 @@ const server = http.createServer((request, response) => {
       const repository = new InterviewSessionRepository(
         createServiceRoleSupabaseRuntimeClient(),
         env.PARTICIPANT_SESSION_TOKEN_SECRET,
+        env.OPENAI_REALTIME_MODEL,
       );
 
       void runSidebandController({

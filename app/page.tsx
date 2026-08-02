@@ -4,21 +4,20 @@ export default function HomePage() {
   return (
     <main className="page-shell stack">
       <div>
-        <p className="eyebrow">Wave 0 foundation</p>
+        <p className="eyebrow">GFOA</p>
         <h1>GFOA AI Voice Interviewer</h1>
         <p className="muted">
-          Repository skeleton for the MVP. Participant intake, consent,
-          realtime interviewing, analysis, and admin review are reserved for
-          later implementation waves.
+          A guided voice interview for understanding public finance
+          professionals&apos; experiences and perspectives.
         </p>
       </div>
-      <nav aria-label="Project placeholder routes" className="panel">
+      <nav aria-label="Project routes" className="panel">
         <ul className="nav-list">
           <li>
-            <Link href="/interview">Interview placeholder</Link>
+            <Link href="/interview">Start interview</Link>
           </li>
           <li>
-            <Link href="/admin">Admin placeholder</Link>
+            <Link href="/admin">Admin review</Link>
           </li>
         </ul>
       </nav>

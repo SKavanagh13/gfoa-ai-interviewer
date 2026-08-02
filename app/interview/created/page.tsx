@@ -16,20 +16,14 @@ export default async function CreatedInterviewPage({
   return (
     <main className="page-shell stack">
       <div>
-        <p className="eyebrow">Interview record created</p>
-        <h1>Ready for Live Session Setup</h1>
+        <p className="eyebrow">Ready</p>
+        <h1>Ready for the Interview</h1>
         <p className="muted">
-          The participant profile and consented interview record have been
-          stored. You can begin the live voice session when the participant is
-          ready.
+          You can begin the live voice session when you are ready.
         </p>
       </div>
       {params.interviewId ? (
         <>
-          <section className="panel stack" aria-labelledby="created-heading">
-            <h2 id="created-heading">Created interview</h2>
-            <p className="record-id">{params.interviewId}</p>
-          </section>
           <LiveSessionClient
             interviewId={params.interviewId}
             targetSeconds={Number(env.REALTIME_SESSION_TARGET_SECONDS)}

@@ -31,7 +31,7 @@ describe("member directory abstraction", () => {
 });
 
 describe("intake profile validation", () => {
-  it("allows a matched profile to be confirmed without changing membership data", () => {
+  it("links matched profile context without requiring participant profile confirmation", () => {
     const formData = new FormData();
     formData.set("source", "matched");
     formData.set("email", "MATCHED.MEMBER@gfoa.org");
@@ -57,7 +57,7 @@ describe("intake profile validation", () => {
     });
   });
 
-  it("records matched profiles as corrected when the participant changes fields", () => {
+  it("does not record participant-facing profile corrections during MVP intake", () => {
     const formData = new FormData();
     formData.set("source", "matched");
     formData.set("email", "matched.member@gfoa.org");
@@ -75,19 +75,19 @@ describe("intake profile validation", () => {
     }
 
     expect(participantInsertFromProfile(result.profile).profile_status).toBe(
-      "matched_corrected",
+      "matched_confirmed",
     );
   });
 
-  it("requires only the minimum unmatched profile fields", () => {
+  it("allows unmatched participants to proceed with email only", () => {
     const formData = new FormData();
     formData.set("source", "unmatched");
     formData.set("email", "new.person@example.org");
-    formData.set("title", "Budget Manager");
-    formData.set("governmentType", "Special district");
-    formData.set("stateOrRegion", "South");
     formData.set("name", "Should Not Persist");
     formData.set("organizationName", "Should Not Persist");
+    formData.set("title", "Should Not Persist");
+    formData.set("governmentType", "Should Not Persist");
+    formData.set("stateOrRegion", "Should Not Persist");
 
     const result = validateProfileForm(formData);
 
@@ -100,25 +100,24 @@ describe("intake profile validation", () => {
       email: "new.person@example.org",
       gfoa_member_id: null,
       name: null,
+      title: null,
       organization_name: null,
+      government_type: null,
+      state_or_region: null,
       profile_status: "unmatched_minimum_collected",
     });
   });
 
-  it("rejects unmatched intake missing minimum required fields", () => {
+  it("rejects intake only when email or source is invalid", () => {
     const formData = new FormData();
     formData.set("source", "unmatched");
-    formData.set("email", "new.person@example.org");
+    formData.set("email", "not-an-email");
 
     const result = validateProfileForm(formData);
 
     expect(result).toEqual({
       ok: false,
-      errors: [
-        "Title or role is required.",
-        "Government type is required.",
-        "State or region is required.",
-      ],
+      errors: ["Enter a valid email address."],
     });
   });
 });
@@ -144,9 +143,6 @@ describe("consent-backed interview creation", () => {
     const formData = new FormData();
     formData.set("source", "unmatched");
     formData.set("email", "new.person@example.org");
-    formData.set("title", "Budget Manager");
-    formData.set("governmentType", "Special district");
-    formData.set("stateOrRegion", "South");
 
     expect(validateConsentedProfileForm(formData)).toStrictEqual({
       errors: ["Consent is required before the interview can begin."],
@@ -157,15 +153,11 @@ describe("consent-backed interview creation", () => {
   it("does not reach persistence when profile validation fails", async () => {
     const formData = new FormData();
     formData.set("source", "unmatched");
-    formData.set("email", "new.person@example.org");
+    formData.set("email", "not-an-email");
     formData.set("consent", "on");
 
     expect(validateConsentedProfileForm(formData)).toStrictEqual({
-      errors: [
-        "Title or role is required.",
-        "Government type is required.",
-        "State or region is required.",
-      ],
+      errors: ["Enter a valid email address."],
       ok: false,
     });
   });
@@ -174,9 +166,6 @@ describe("consent-backed interview creation", () => {
     const formData = new FormData();
     formData.set("source", "unmatched");
     formData.set("email", "new.person@example.org");
-    formData.set("title", "Budget Manager");
-    formData.set("governmentType", "Special district");
-    formData.set("stateOrRegion", "South");
     formData.set("consent", "on");
 
     await expect(createInterview({ errors: [] }, formData)).resolves.toEqual({

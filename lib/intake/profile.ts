@@ -79,46 +79,33 @@ export function validateProfileForm(
     errors.push(emailError);
   }
 
+  const gfoaMemberId = nullableText(formData.get("gfoaMemberId"));
   if (source !== "matched" && source !== "unmatched") {
     errors.push("Profile source is invalid.");
   }
 
-  const title = nullableText(formData.get("title"));
-  const governmentType = nullableText(formData.get("governmentType"));
-  const stateOrRegion = nullableText(formData.get("stateOrRegion"));
-
-  if (source === "unmatched") {
-    if (!title) {
-      errors.push("Title or role is required.");
-    }
-
-    if (!governmentType) {
-      errors.push("Government type is required.");
-    }
-
-    if (!stateOrRegion) {
-      errors.push("State or region is required.");
-    }
-  }
-
   const profile: IntakeProfileInput = {
     email,
-    gfoaMemberId: nullableText(formData.get("gfoaMemberId")),
+    gfoaMemberId,
     name: nullableText(formData.get("name")),
-    title,
+    title: nullableText(formData.get("title")),
     organizationName: nullableText(formData.get("organizationName")),
-    governmentType,
-    stateOrRegion,
+    governmentType: nullableText(formData.get("governmentType")),
+    stateOrRegion: nullableText(formData.get("stateOrRegion")),
     organizationSizeBand: nullableText(formData.get("organizationSizeBand")),
     experienceBand: nullableText(formData.get("experienceBand")),
-    matchedProfileWasCorrected:
-      source === "matched" && formData.get("matchedProfileWasCorrected") === "on",
+    matchedProfileWasCorrected: false,
   };
 
-  if (source === "unmatched") {
+  if (!gfoaMemberId) {
     profile.gfoaMemberId = null;
     profile.name = null;
+    profile.title = null;
     profile.organizationName = null;
+    profile.governmentType = null;
+    profile.stateOrRegion = null;
+    profile.organizationSizeBand = null;
+    profile.experienceBand = null;
   }
 
   if (errors.length > 0) {
@@ -157,9 +144,7 @@ export function participantInsertFromProfile(
     organization_size_band: profile.organizationSizeBand ?? null,
     experience_band: profile.experienceBand ?? null,
     profile_status: hasMemberId
-      ? profile.matchedProfileWasCorrected
-        ? "matched_corrected"
-        : "matched_confirmed"
+      ? "matched_confirmed"
       : "unmatched_minimum_collected",
     profile_confirmed_at: new Date().toISOString(),
   };

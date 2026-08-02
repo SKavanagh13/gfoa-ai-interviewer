@@ -6,7 +6,7 @@ import {
   initialCreateInterviewState,
   initialLookupState,
 } from "@/app/interview/state";
-import { consentDisclosureItems, CONSENT_VERSION } from "@/lib/intake/consent";
+import { consentDisclosureItems } from "@/lib/intake/consent";
 
 export function IntakeFlow() {
   const [lookupState, lookupAction, lookupPending] = useActionState(
@@ -24,7 +24,7 @@ export function IntakeFlow() {
       <section className="panel stack" aria-labelledby="lookup-heading">
         <div>
           <p className="eyebrow">Step 1</p>
-          <h2 id="lookup-heading">Find Your Profile</h2>
+          <h2 id="lookup-heading">Enter Your Email</h2>
         </div>
         <form action={lookupAction} className="form-stack">
           <label className="field">
@@ -39,7 +39,7 @@ export function IntakeFlow() {
           </label>
           <ErrorList errors={lookupState.errors} />
           <button type="submit" disabled={lookupPending}>
-            {lookupPending ? "Checking..." : "Look up profile"}
+            {lookupPending ? "Checking..." : "Continue"}
           </button>
         </form>
       </section>
@@ -62,84 +62,22 @@ export function IntakeFlow() {
           />
 
           {lookupState.searched && lookupState.match ? (
-            <p className="status-note">Profile match found. Confirm or correct it below.</p>
+            <p className="status-note">Confirm your email to continue.</p>
           ) : null}
           {lookupState.searched && !lookupState.match ? (
-            <p className="status-note">
-              No member profile was found. Provide the minimum profile details
-              below.
-            </p>
+            <p className="status-note">Confirm your email to continue.</p>
           ) : null}
 
-          <div className="field-grid">
-            <label className="field">
-              <span>Email address</span>
-              <input
-                name="email"
-                type="email"
-                required
-                placeholder="you@example.org"
-                defaultValue={lookupState.match?.email ?? lookupState.email}
-              />
-            </label>
-            <label className="field">
-              <span>Name</span>
-              <input
-                name="name"
-                defaultValue={lookupState.match?.name ?? ""}
-                disabled={!lookupState.match}
-              />
-            </label>
-            <label className="field">
-              <span>Title or role</span>
-              <input name="title" required defaultValue={lookupState.match?.title ?? ""} />
-            </label>
-            <label className="field">
-              <span>Organization</span>
-              <input
-                name="organizationName"
-                defaultValue={lookupState.match?.organizationName ?? ""}
-                disabled={!lookupState.match}
-              />
-            </label>
-            <label className="field">
-              <span>Government type</span>
-              <input
-                name="governmentType"
-                required
-                defaultValue={lookupState.match?.governmentType ?? ""}
-              />
-            </label>
-            <label className="field">
-              <span>State or region</span>
-              <input
-                name="stateOrRegion"
-                required
-                defaultValue={lookupState.match?.stateOrRegion ?? ""}
-              />
-            </label>
-            <label className="field">
-              <span>Organization size band</span>
-              <input
-                name="organizationSizeBand"
-                defaultValue={lookupState.match?.organizationSizeBand ?? ""}
-              />
-            </label>
-            <label className="field">
-              <span>Experience band</span>
-              <input
-                name="experienceBand"
-                defaultValue={lookupState.match?.experienceBand ?? ""}
-              />
-            </label>
-          </div>
-
-          {lookupState.match ? (
-            <label className="checkbox-row">
-              <input name="matchedProfileWasCorrected" type="checkbox" />
-              <span>I corrected one or more matched profile fields.</span>
-            </label>
-          ) : null}
+          <label className="field">
+            <span>Email address</span>
+            <input
+              name="email"
+              type="email"
+              required
+              placeholder="you@example.org"
+              defaultValue={lookupState.match?.email ?? lookupState.email}
+            />
+          </label>
 
           <div className="notice-list" aria-label="Required disclosure">
             {consentDisclosureItems.map((item) => (
@@ -149,10 +87,7 @@ export function IntakeFlow() {
 
           <label className="checkbox-row">
             <input name="consent" type="checkbox" required />
-            <span>
-              I consent to this AI interview, recording, and transcription under{" "}
-              {CONSENT_VERSION}.
-            </span>
+            <span>I consent to this AI interview, recording, and transcription</span>
           </label>
           <ErrorList errors={createState.errors} />
           <button type="submit" disabled={createPending}>

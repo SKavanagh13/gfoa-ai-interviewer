@@ -147,4 +147,19 @@ describe("Wave 3 route and runtime boundaries", () => {
     expect(controller).toContain("hasContinuationConsent");
     expect(controller).toContain("target_without_continuation_consent");
   });
+
+  it("starts the interviewer proactively and gives participants move-on guidance", () => {
+    const client = readWorkspaceFile(
+      "app",
+      "interview",
+      "created",
+      "live-session-client.tsx",
+    );
+
+    expect(client).toContain('type: "response.create"');
+    expect(client).toContain("Begin the interview now");
+    expect(client).toContain("Do not wait for the participant to say hello");
+    expect(client).toContain("six big questions");
+    expect(client).toContain("we are done with this question");
+  });
 });

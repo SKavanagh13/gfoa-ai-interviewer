@@ -155,11 +155,16 @@ describe("Wave 3 route and runtime boundaries", () => {
       "created",
       "live-session-client.tsx",
     );
+    const opening = readWorkspaceFile("lib", "interview", "live-opening.ts");
+    const prompt = readWorkspaceFile("lib", "interview", "live-prompt.ts");
 
     expect(client).toContain('type: "response.create"');
-    expect(client).toContain("Read this opening exactly once");
-    expect(client).toContain("Thanks for making the time to talk");
-    expect(client).toContain("Do not add a second introduction");
+    expect(client).toContain("INITIAL_INTERVIEWER_RESPONSE_INSTRUCTIONS");
+    expect(opening).toContain("Read this opening exactly once");
+    expect(opening).toContain("Thanks for making the time to talk");
+    expect(opening).toContain("Do not add a second introduction");
+    expect(prompt).toContain("Initial opening script");
+    expect(prompt).toContain("LIVE_INTERVIEW_OPENING_SCRIPT");
     expect(client).toContain("six big questions");
     expect(client).toContain("It may have follow-up questions on your");
     expect(client).toContain("restrain its enthusiasm");

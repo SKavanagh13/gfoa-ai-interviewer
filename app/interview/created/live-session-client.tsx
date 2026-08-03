@@ -283,12 +283,12 @@ export function LiveSessionClient({
         <div className="session-notice">
           <p>
             There are six big questions the interview will cover. Select Start
-            interview and wait for the interviewer to begin.
-          </p>
-          <p>
-            The interviewer will ask the six questions one at a time and may ask
-            follow-up questions. If it asks too many follow-ups, you can say,
-            &quot;we are done with this question, let&apos;s move on.&quot;
+            interview and wait for the interviewer to begin. It will ask you the
+            six questions one at a time. It may have follow-up questions on your
+            answers. Our interviewer can be curious, and although we have asked
+            it to restrain its enthusiasm, if you feel it is asking too many
+            follow-ups, feel free to say, &quot;we are done with this question,
+            let&apos;s move on.&quot;
           </p>
         </div>
       )}

@@ -68,6 +68,12 @@ describe("OpenAI Realtime client", () => {
     expect(payload.model).toBe("gpt-realtime");
     expect(payload.tool_choice).toBe("none");
     expect(payload.tools).toEqual([]);
+    expect(payload.audio.input.turn_detection).toMatchObject({
+      type: "semantic_vad",
+      eagerness: "low",
+      create_response: true,
+      interrupt_response: false,
+    });
     expect(payload.instructions).toContain("Locked Operating Principles");
     expect(payload.instructions).toContain("Locked Interview Guide");
     expect(payload.instructions).toContain("Do not perform post-interview analysis");

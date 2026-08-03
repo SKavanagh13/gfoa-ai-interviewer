@@ -52,9 +52,9 @@ export function buildRealtimeSessionPayload(input: CreateRealtimeCallInput) {
         },
         turn_detection: {
           type: "semantic_vad",
-          eagerness: "medium",
+          eagerness: "low",
           create_response: true,
-          interrupt_response: true,
+          interrupt_response: false,
         },
       },
       output: {

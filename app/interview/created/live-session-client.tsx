@@ -42,6 +42,8 @@ export function LiveSessionClient({
   const localStreamRef = useRef<MediaStream | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const startEventSentRef = useRef(false);
+  const openingResponsePendingRef = useRef(false);
+  const openingUnmuteTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (
@@ -86,6 +88,8 @@ export function LiveSessionClient({
         },
       });
       localStreamRef.current = stream;
+      setMicrophoneEnabled(false);
+      openingResponsePendingRef.current = true;
       setState("connecting");
 
       const peerConnection = new RTCPeerConnection();
@@ -107,6 +111,7 @@ export function LiveSessionClient({
       dataChannel.addEventListener("open", () => {
         sendInitialInterviewerResponse(dataChannel);
       });
+      dataChannel.addEventListener("message", handleRealtimeDataChannelMessage);
       peerConnection.onconnectionstatechange = () => {
         if (peerConnection.connectionState === "connected") {
           setState("connected");
@@ -219,6 +224,11 @@ export function LiveSessionClient({
     localStreamRef.current?.getTracks().forEach((track) => track.stop());
     localStreamRef.current = null;
     startEventSentRef.current = false;
+    openingResponsePendingRef.current = false;
+    if (openingUnmuteTimeoutRef.current) {
+      window.clearTimeout(openingUnmuteTimeoutRef.current);
+      openingUnmuteTimeoutRef.current = null;
+    }
   }
 
   function sendInitialInterviewerResponse(dataChannel: RTCDataChannel) {
@@ -227,6 +237,9 @@ export function LiveSessionClient({
     }
 
     startEventSentRef.current = true;
+    openingUnmuteTimeoutRef.current = window.setTimeout(() => {
+      unmuteAfterOpeningResponse();
+    }, 30000);
     dataChannel.send(
       JSON.stringify({
         type: "response.create",
@@ -235,6 +248,38 @@ export function LiveSessionClient({
         },
       }),
     );
+  }
+
+  function handleRealtimeDataChannelMessage(event: MessageEvent) {
+    if (!openingResponsePendingRef.current || typeof event.data !== "string") {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(event.data) as { type?: unknown };
+      if (
+        parsed.type === "response.done" ||
+        parsed.type === "response.audio.done" ||
+        parsed.type === "output_audio_buffer.stopped"
+      ) {
+        unmuteAfterOpeningResponse();
+      }
+    } catch {
+      return;
+    }
+  }
+
+  function unmuteAfterOpeningResponse() {
+    if (!openingResponsePendingRef.current) {
+      return;
+    }
+
+    openingResponsePendingRef.current = false;
+    if (openingUnmuteTimeoutRef.current) {
+      window.clearTimeout(openingUnmuteTimeoutRef.current);
+      openingUnmuteTimeoutRef.current = null;
+    }
+    setMicrophoneEnabled(true);
   }
 
   const canStart =

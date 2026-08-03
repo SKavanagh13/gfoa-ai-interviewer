@@ -179,6 +179,12 @@ describe("Wave 3 route and runtime boundaries", () => {
     expect(client).toContain("echoCancellation: true");
     expect(client).toContain("noiseSuppression: true");
     expect(client).toContain("autoGainControl: true");
+    expect(client).toContain("openingResponsePendingRef");
+    expect(client).toMatch(/setMicrophoneEnabled\(false\)[\s\S]*sendInitialInterviewerResponse/);
+    expect(client).toContain('parsed.type === "response.done"');
+    expect(client).toContain('parsed.type === "response.audio.done"');
+    expect(client).toContain('parsed.type === "output_audio_buffer.stopped"');
+    expect(client).toContain("unmuteAfterOpeningResponse");
     expect(client).toContain("Thank you for participating.");
     expect(client).toContain("You may close this browser window.");
   });

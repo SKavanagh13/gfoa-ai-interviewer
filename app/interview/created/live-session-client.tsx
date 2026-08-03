@@ -26,6 +26,9 @@ type RealtimeStartFailureReason =
   | "sideband_dispatch_failed"
   | "realtime_session_failed";
 
+const INITIAL_INTERVIEWER_RESPONSE_INSTRUCTIONS =
+  'Read this opening exactly once, then ask the first question exactly as written: "Thanks for making the time. I\'m here on behalf of GFOA; we\'re trying to understand what public finance professionals are seeing and experiencing in their jobs. This should take about fifteen minutes, and there are no right answers. To start, what is one issue that has been taking an unusual amount of your attention lately?" Do not add a second introduction or rephrase before the participant responds.';
+
 export function LiveSessionClient({
   interviewId,
   targetSeconds,
@@ -224,8 +227,7 @@ export function LiveSessionClient({
       JSON.stringify({
         type: "response.create",
         response: {
-          instructions:
-            "Begin the interview now. Speak first with the brief approved opening, then ask the first locked objective question. Do not wait for the participant to say hello.",
+          instructions: INITIAL_INTERVIEWER_RESPONSE_INSTRUCTIONS,
         },
       }),
     );
@@ -270,17 +272,26 @@ export function LiveSessionClient({
         </div>
       </div>
 
-      <div className="session-notice">
-        <p>
-          The interview covers six big questions. Select Start interview and
-          wait for the interviewer to begin.
-        </p>
-        <p>
-          The interviewer may ask follow-up questions. If it asks too many on
-          one topic, you can say, &quot;we are done with this question, let&apos;s move
-          on.&quot;
-        </p>
-      </div>
+      {state === "ended" ? (
+        <div className="session-notice" role="status">
+          <p>
+            <strong>Thank you for participating.</strong>
+          </p>
+          <p>You may close this browser window.</p>
+        </div>
+      ) : (
+        <div className="session-notice">
+          <p>
+            There are six big questions the interview will cover. Select Start
+            interview and wait for the interviewer to begin.
+          </p>
+          <p>
+            The interviewer will ask the six questions one at a time and may ask
+            follow-up questions. If it asks too many follow-ups, you can say,
+            &quot;we are done with this question, let&apos;s move on.&quot;
+          </p>
+        </div>
+      )}
 
       {error ? <p className="form-error">{error}</p> : null}
 

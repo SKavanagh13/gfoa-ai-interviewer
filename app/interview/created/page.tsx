@@ -16,7 +16,6 @@ export default async function CreatedInterviewPage({
   return (
     <main className="page-shell stack">
       <div>
-        <p className="eyebrow">Ready</p>
         <h1>Ready for the Interview</h1>
         <p className="muted">
           You can begin the live voice session when you are ready.

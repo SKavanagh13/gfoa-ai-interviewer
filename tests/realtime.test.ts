@@ -75,7 +75,16 @@ describe("OpenAI Realtime client", () => {
     expect(payload.instructions).toContain(
       "Where do you most often feel tension between what looks right on paper and what works in practice?",
     );
-    expect(payload.instructions).toContain("Do not recap after every objective");
+    expect(payload.instructions).toContain(
+      "Brief per-objective acknowledgments or mini recaps are allowed",
+    );
+    expect(payload.instructions).toContain("Authorized MVP closing override");
+    expect(payload.instructions).toContain(
+      "Do not provide a broad final synthesis or recap of the whole interview",
+    );
+    expect(payload.instructions).toContain(
+      "After the sixth objective, briefly recap only the participant's answer to that objective",
+    );
     expect(payload.instructions).toContain(
       "Please select End interview to conclude our time together.",
     );

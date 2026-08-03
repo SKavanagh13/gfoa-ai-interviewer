@@ -157,9 +157,34 @@ describe("Wave 3 route and runtime boundaries", () => {
     );
 
     expect(client).toContain('type: "response.create"');
-    expect(client).toContain("Begin the interview now");
-    expect(client).toContain("Do not wait for the participant to say hello");
+    expect(client).toContain("Read this opening exactly once");
+    expect(client).toContain("Do not add a second introduction");
     expect(client).toContain("six big questions");
     expect(client).toContain("we are done with this question");
+    expect(client).toContain("Thank you for participating.");
+    expect(client).toContain("You may close this browser window.");
+  });
+
+  it("keeps the participant ready pages free of redundant Ready eyebrow labels", () => {
+    const intake = readWorkspaceFile("app", "interview", "intake-flow.tsx");
+    const created = readWorkspaceFile("app", "interview", "created", "page.tsx");
+
+    expect(intake).not.toContain('<p className="eyebrow">Ready</p>');
+    expect(created).not.toContain('<p className="eyebrow">Ready</p>');
+  });
+
+  it("applies the authorized closing override after the locked guide", () => {
+    const prompt = readWorkspaceFile("lib", "interview", "live-prompt.ts");
+
+    expect(prompt).toContain("Authorized MVP closing override");
+    expect(prompt).toContain(
+      "Do not provide a broad final synthesis or recap of the whole interview",
+    );
+    expect(prompt).toContain(
+      "After the sixth objective, briefly recap only the participant's answer to that objective",
+    );
+    expect(prompt.indexOf("Authorized MVP closing override")).toBeGreaterThan(
+      prompt.indexOf("Locked Interview Guide:"),
+    );
   });
 });

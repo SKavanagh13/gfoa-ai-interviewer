@@ -15,7 +15,6 @@ export function IntakeFlow() {
     <div className="single-panel-grid">
       <section className="panel stack" aria-labelledby="consent-heading">
         <div>
-          <p className="eyebrow">Ready</p>
           <h2 id="consent-heading">Confirm and Consent</h2>
         </div>
         <form action={createAction} className="form-stack">

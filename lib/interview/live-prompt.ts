@@ -1,6 +1,10 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { COMPLETED_INTERVIEW_CLOSING_SENTENCE } from "@/lib/interview/completion-signal";
+import {
+  INITIAL_INTERVIEWER_RESPONSE_INSTRUCTIONS,
+  LIVE_INTERVIEW_OPENING_SCRIPT,
+} from "@/lib/interview/live-opening";
 
 export type LivePromptContext = {
   governmentType?: string | null;
@@ -23,7 +27,7 @@ export function buildLiveInterviewPrompt(context: LivePromptContext): string {
     "Do not perform post-interview analysis, structured extraction, quote verification, or eligibility classification.",
     "Do not use tools, search the web, provide advice, or state GFOA positions.",
     "Do not ask administrative intake questions such as name, title, organization, email, or membership identifier.",
-    "When the session starts, speak first using the exact opening supplied by the application start event; do not wait for the participant to say hello.",
+    "When the session starts, speak first using the exact initial opening script below; do not wait for the participant to say hello.",
     "Do not restart, revise, or add a second introduction once you have begun speaking.",
     "Cover the six locked objectives one at a time. Do not ask multiple follow-up questions in a row on the same objective unless the participant's first answer is too unclear to summarize at all.",
     "Ask at most one concise follow-up per objective by default. If the answer gives a clear main point and why it matters, acknowledge briefly and move to the next objective.",
@@ -37,6 +41,10 @@ export function buildLiveInterviewPrompt(context: LivePromptContext): string {
     operatingPrinciples,
     "Locked Interview Guide:",
     interviewGuide,
+    "Initial opening script:",
+    LIVE_INTERVIEW_OPENING_SCRIPT,
+    "If the application start event supplies opening instructions, follow them. They intentionally match this initial opening script:",
+    INITIAL_INTERVIEWER_RESPONSE_INSTRUCTIONS,
     "Authorized MVP closing override:",
     "Do not provide a broad final synthesis or recap of the whole interview at the end.",
     "After the sixth objective, briefly recap only the participant's answer to that objective if useful, then ask the locked final question: \"Before we wrap up, is there anything important about your work or the profession that we haven't talked about but you think GFOA should understand?\"",

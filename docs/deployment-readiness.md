@@ -25,7 +25,7 @@ worker runtime before running a pilot.
 | `PARTICIPANT_SESSION_TOKEN_TTL_SECONDS` | Server config | Next.js app, sideband worker | Must be greater than `REALTIME_SESSION_HARD_CAP_SECONDS`. |
 | `SIDEBAND_WORKER_BASE_URL` | Server config | Next.js app | Internal base URL where the Next.js app can reach the worker. |
 | `TRANSCRIPT_RECONCILIATION_TIMEOUT_MS` | Server config | Next.js app, sideband worker | Buffer for transcript reconciliation after call close. |
-| `SIDEBAND_WORKER_PORT` | Server config | Sideband worker | Optional; defaults to `8787` for local/dev worker runs. |
+| `SIDEBAND_WORKER_PORT` | Server config | Sideband worker | Optional local/dev fallback. Hosted runtimes such as Railway should use their injected `PORT`; the worker prefers `PORT` when present. |
 
 Do not commit real secrets to the repository. For local examples, use dummy
 values only.
@@ -45,6 +45,17 @@ For local development, run:
 ```powershell
 npm run sideband:dev
 ```
+
+For a hosted Node service such as Railway, use this start command:
+
+```powershell
+npm run sideband:start
+```
+
+Railway injects `PORT` for the service listener. Do not force
+`SIDEBAND_WORKER_PORT` in Railway unless the platform explicitly tells you to;
+the Next.js app should point `SIDEBAND_WORKER_BASE_URL` at the worker's public
+Railway domain.
 
 For a pilot deployment, run the same worker shape in a runtime that can keep an
 OpenAI Realtime sideband WebSocket open for the 20-minute hard cap plus the

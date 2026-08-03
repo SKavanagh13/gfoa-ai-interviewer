@@ -58,6 +58,21 @@ describe("Wave 3 route and runtime boundaries", () => {
     expect(worker).toContain("response.writeHead(401)");
   });
 
+  it("keeps the sideband worker deployable as a long-lived Node service", () => {
+    const packageJson = JSON.parse(readWorkspaceFile("package.json")) as {
+      scripts: Record<string, string>;
+      dependencies: Record<string, string>;
+    };
+    const worker = readWorkspaceFile("workers", "sideband-worker.ts");
+
+    expect(packageJson.scripts["sideband:start"]).toBe(
+      "tsx workers/sideband-worker.ts",
+    );
+    expect(packageJson.dependencies).toHaveProperty("tsx");
+    expect(worker).toContain("process.env.PORT");
+    expect(worker).toMatch(/process\.env\.PORT[\s\S]*SIDEBAND_WORKER_PORT/);
+  });
+
   it("treats hard-cap sideband closure as intentional transcript finalization", () => {
     const controller = readWorkspaceFile(
       "lib",

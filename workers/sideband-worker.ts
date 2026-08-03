@@ -8,7 +8,7 @@ import {
 import { InterviewSessionRepository } from "@/lib/interview/session-repository";
 import { createServiceRoleSupabaseRuntimeClient } from "@/lib/supabase/service-role";
 
-const port = Number(process.env.SIDEBAND_WORKER_PORT ?? 8787);
+const port = Number(process.env.PORT ?? process.env.SIDEBAND_WORKER_PORT ?? 8787);
 
 const server = http.createServer((request, response) => {
   if (request.method !== "POST" || request.url !== "/sideband/start") {

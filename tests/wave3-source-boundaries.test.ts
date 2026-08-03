@@ -73,6 +73,23 @@ describe("Wave 3 route and runtime boundaries", () => {
     expect(worker).toMatch(/process\.env\.PORT[\s\S]*SIDEBAND_WORKER_PORT/);
   });
 
+  it("terminates a created Realtime call when sideband dispatch fails", () => {
+    const route = readWorkspaceFile(
+      "app",
+      "api",
+      "interview",
+      "[interviewId]",
+      "realtime-call",
+      "route.ts",
+    );
+
+    expect(route).toContain("hangUpRealtimeCall");
+    expect(route).toMatch(/realtimeCall = await createRealtimeCall/);
+    expect(route).toMatch(/dispatchSidebandWorker[\s\S]*catch/);
+    expect(route).toMatch(/if \(realtimeCall\?\.callId\)[\s\S]*hangUpRealtimeCall/);
+    expect(route).toContain('"sideband_dispatch_failed"');
+  });
+
   it("treats hard-cap sideband closure as intentional transcript finalization", () => {
     const controller = readWorkspaceFile(
       "lib",

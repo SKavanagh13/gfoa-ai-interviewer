@@ -39,7 +39,7 @@ export function IntakeFlow() {
           </label>
           <ErrorList errors={lookupState.errors} />
           <button type="submit" disabled={lookupPending}>
-            {lookupPending ? "Checking..." : "Continue"}
+            {lookupPending ? "Checking..." : "Check email"}
           </button>
         </form>
       </section>

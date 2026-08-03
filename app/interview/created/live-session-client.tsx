@@ -20,6 +20,12 @@ type LiveState =
   | "microphone_denied"
   | "failed";
 
+type RealtimeStartFailureReason =
+  | "openai_realtime_call_failed"
+  | "openai_realtime_call_missing_id"
+  | "sideband_dispatch_failed"
+  | "realtime_session_failed";
+
 export function LiveSessionClient({
   interviewId,
   targetSeconds,
@@ -118,7 +124,8 @@ export function LiveSessionClient({
       });
 
       if (!response.ok) {
-        throw new Error("Could not start the voice session.");
+        const failure = await readRealtimeStartFailure(response);
+        throw new Error(realtimeStartFailureMessage(failure.reason));
       }
 
       const data = (await response.json()) as { sdpAnswer: string };
@@ -278,6 +285,37 @@ export function LiveSessionClient({
 
 function statusLabel(state: LiveState): string {
   return state.replaceAll("_", " ");
+}
+
+async function readRealtimeStartFailure(
+  response: Response,
+): Promise<{ reason: RealtimeStartFailureReason }> {
+  try {
+    const body = (await response.json()) as {
+      reason?: RealtimeStartFailureReason;
+    };
+
+    return { reason: body.reason ?? "realtime_session_failed" };
+  } catch {
+    return { reason: "realtime_session_failed" };
+  }
+}
+
+function realtimeStartFailureMessage(
+  reason: RealtimeStartFailureReason,
+): string {
+  if (reason === "sideband_dispatch_failed") {
+    return "The voice session was created, but the server capture worker could not be reached or did not authorize the request.";
+  }
+
+  if (
+    reason === "openai_realtime_call_failed" ||
+    reason === "openai_realtime_call_missing_id"
+  ) {
+    return "OpenAI Realtime could not create the voice session.";
+  }
+
+  return "Could not start the voice session.";
 }
 
 function formatDuration(totalSeconds: number): string {

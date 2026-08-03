@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { createInterview } from "@/app/interview/actions";
 import { CONSENT_VERSION } from "@/lib/intake/consent";
 import { MockMemberDirectory } from "@/lib/intake/member-directory";
@@ -10,6 +12,10 @@ import {
 } from "@/lib/intake/profile";
 
 vi.mock("server-only", () => ({}));
+
+function readWorkspaceFile(...segments: string[]) {
+  return readFileSync(path.join(process.cwd(), ...segments), "utf8");
+}
 
 describe("member directory abstraction", () => {
   it("finds a matched member by normalized email", async () => {
@@ -119,6 +125,15 @@ describe("intake profile validation", () => {
       ok: false,
       errors: ["Enter a valid email address."],
     });
+  });
+});
+
+describe("email-only intake UI", () => {
+  it("does not present the email lookup action as a continuation step", () => {
+    const source = readWorkspaceFile("app", "interview", "intake-flow.tsx");
+
+    expect(source).toContain("Check email");
+    expect(source).not.toContain(': "Continue"');
   });
 });
 

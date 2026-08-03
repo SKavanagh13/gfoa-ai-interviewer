@@ -98,6 +98,32 @@ describe("OpenAI Realtime client", () => {
     expect(JSON.stringify(result)).not.toContain("openai-key");
   });
 
+  it("sends Realtime WebRTC create-call fields as form strings", async () => {
+    let submittedForm: FormData | undefined;
+    const fetchMock = vi.fn(async (_url, init) => {
+      submittedForm = init?.body instanceof FormData ? init.body : undefined;
+
+      return new Response("answer-sdp", {
+        status: 201,
+        headers: {
+          Location: "/v1/realtime/calls/rtc_abc",
+        },
+      });
+    });
+
+    await createRealtimeCall({ sdpOffer: "offer-sdp" }, fetchMock as never);
+
+    if (!submittedForm) {
+      throw new Error("Expected a FormData request body.");
+    }
+
+    const form = submittedForm;
+    expect(form.get("sdp")).toBe("offer-sdp");
+    expect(typeof form.get("session")).toBe("string");
+    expect(form.get("sdp")).not.toBeInstanceOf(Blob);
+    expect(form.get("session")).not.toBeInstanceOf(Blob);
+  });
+
   it("preserves sanitized OpenAI error status and code for diagnostics", async () => {
     const fetchMock = vi.fn(async () => {
       return Response.json(

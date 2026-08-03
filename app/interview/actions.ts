@@ -116,10 +116,18 @@ async function resolveConsentedEmailOnlyProfile(formData: FormData) {
   }
 
   const email = normalizeEmail(String(formData.get("email") ?? ""));
+  const confirmEmail = normalizeEmail(String(formData.get("confirmEmail") ?? ""));
   const emailError = validateEmail(email);
 
   if (emailError) {
     return { ok: false as const, errors: [emailError] };
+  }
+
+  if (email !== confirmEmail) {
+    return {
+      ok: false as const,
+      errors: ["Email addresses must match."],
+    };
   }
 
   const match = await getMemberDirectory().findByEmail(email);

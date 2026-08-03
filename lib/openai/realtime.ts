@@ -74,13 +74,8 @@ export async function createRealtimeCall(
   const env = getServerRuntimeEnv();
   const form = new FormData();
 
-  form.set("sdp", new Blob([input.sdpOffer], { type: "application/sdp" }));
-  form.set(
-    "session",
-    new Blob([JSON.stringify(buildRealtimeSessionPayload(input))], {
-      type: "application/json",
-    }),
-  );
+  form.set("sdp", input.sdpOffer);
+  form.set("session", JSON.stringify(buildRealtimeSessionPayload(input)));
 
   const response = await fetchImpl("https://api.openai.com/v1/realtime/calls", {
     method: "POST",

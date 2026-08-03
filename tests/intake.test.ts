@@ -134,6 +134,7 @@ describe("email-only intake UI", () => {
 
     expect(source).not.toContain("Check email");
     expect(source).not.toContain(': "Continue"');
+    expect(source).toContain('name="confirmEmail"');
     expect(source).toContain("Set up interview");
   });
 });
@@ -178,10 +179,21 @@ describe("consent-backed interview creation", () => {
     });
   });
 
+  it("requires the participant to confirm the same email address", async () => {
+    const formData = new FormData();
+    formData.set("email", "first@example.org");
+    formData.set("confirmEmail", "second@example.org");
+    formData.set("consent", "on");
+
+    await expect(createInterview({ errors: [] }, formData)).resolves.toEqual({
+      errors: ["Email addresses must match."],
+    });
+  });
+
   it("returns a form error when persistence fails", async () => {
     const formData = new FormData();
-    formData.set("source", "unmatched");
     formData.set("email", "new.person@example.org");
+    formData.set("confirmEmail", "new.person@example.org");
     formData.set("consent", "on");
 
     await expect(createInterview({ errors: [] }, formData)).resolves.toEqual({

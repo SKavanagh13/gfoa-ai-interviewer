@@ -28,6 +28,15 @@ export function IntakeFlow() {
               placeholder="you@example.org"
             />
           </label>
+          <label className="field">
+            <span>Confirm email address</span>
+            <input
+              name="confirmEmail"
+              type="email"
+              required
+              placeholder="you@example.org"
+            />
+          </label>
 
           <div className="notice-list" aria-label="Required disclosure">
             {consentDisclosureItems.map((item) => (

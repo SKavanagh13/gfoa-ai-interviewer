@@ -69,8 +69,10 @@ describe("OpenAI Realtime client", () => {
     expect(payload.tool_choice).toBe("none");
     expect(payload.tools).toEqual([]);
     expect(payload.audio.input.turn_detection).toMatchObject({
-      type: "semantic_vad",
-      eagerness: "low",
+      type: "server_vad",
+      threshold: 0.5,
+      prefix_padding_ms: 300,
+      silence_duration_ms: 1200,
       create_response: true,
       interrupt_response: false,
     });
@@ -89,6 +91,9 @@ describe("OpenAI Realtime client", () => {
     );
     expect(payload.instructions).toContain("Do not perform post-interview analysis");
     expect(payload.instructions).toContain("Ask at most one concise follow-up");
+    expect(payload.instructions).toContain(
+      "Do not infer or complete the participant's answer from a partial response",
+    );
     expect(payload.instructions).toContain(
       "Where do you most often feel tension between what looks right on paper and what works in practice?",
     );

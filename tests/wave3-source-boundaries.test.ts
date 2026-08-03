@@ -174,8 +174,12 @@ describe("Wave 3 route and runtime boundaries", () => {
     expect(prompt).toContain("LIVE_INTERVIEW_OPENING_SCRIPT");
     expect(client).toContain("six big questions");
     expect(client).toContain("It may have follow-up questions on your");
-    expect(client).toContain("restrain its enthusiasm");
+    expect(client).toContain("pause for a second or two");
+    expect(client).toContain("restrain its");
     expect(client).toContain("we are done with this question");
+    expect(prompt).toContain(
+      "Do not infer or complete the participant's answer from a partial response",
+    );
     expect(client).toContain("echoCancellation: true");
     expect(client).toContain("noiseSuppression: true");
     expect(client).toContain("autoGainControl: true");

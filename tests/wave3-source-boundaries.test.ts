@@ -158,8 +158,11 @@ describe("Wave 3 route and runtime boundaries", () => {
 
     expect(client).toContain('type: "response.create"');
     expect(client).toContain("Read this opening exactly once");
+    expect(client).toContain("Thanks for making the time to talk");
     expect(client).toContain("Do not add a second introduction");
     expect(client).toContain("six big questions");
+    expect(client).toContain("It may have follow-up questions on your");
+    expect(client).toContain("restrain its enthusiasm");
     expect(client).toContain("we are done with this question");
     expect(client).toContain("Thank you for participating.");
     expect(client).toContain("You may close this browser window.");

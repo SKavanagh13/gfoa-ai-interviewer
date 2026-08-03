@@ -79,7 +79,13 @@ describe("OpenAI Realtime client", () => {
     expect(payload.instructions).toContain("Initial opening script");
     expect(payload.instructions).toContain("Thanks for making the time to talk");
     expect(payload.instructions).toContain(
-      "Read this opening exactly once, then ask the first question exactly as written",
+      "Do not begin speaking from the session setup instructions alone.",
+    );
+    expect(payload.instructions).toContain(
+      "The application start event is the only trigger for the opening response",
+    );
+    expect(payload.instructions).toContain(
+      "Start speaking now. Read this opening exactly once, then ask the first question exactly as written",
     );
     expect(payload.instructions).toContain("Do not perform post-interview analysis");
     expect(payload.instructions).toContain("Ask at most one concise follow-up");

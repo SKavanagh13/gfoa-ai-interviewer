@@ -160,9 +160,16 @@ describe("Wave 3 route and runtime boundaries", () => {
 
     expect(client).toContain('type: "response.create"');
     expect(client).toContain("INITIAL_INTERVIEWER_RESPONSE_INSTRUCTIONS");
+    expect(opening).toContain("Start speaking now");
     expect(opening).toContain("Read this opening exactly once");
     expect(opening).toContain("Thanks for making the time to talk");
     expect(opening).toContain("Do not add a second introduction");
+    expect(prompt).toContain(
+      "Do not begin speaking from the session setup instructions alone",
+    );
+    expect(prompt).toContain(
+      "The application start event is the only trigger for the opening response",
+    );
     expect(prompt).toContain("Initial opening script");
     expect(prompt).toContain("LIVE_INTERVIEW_OPENING_SCRIPT");
     expect(client).toContain("six big questions");

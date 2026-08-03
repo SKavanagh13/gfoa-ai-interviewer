@@ -129,11 +129,12 @@ describe("intake profile validation", () => {
 });
 
 describe("email-only intake UI", () => {
-  it("does not present the email lookup action as a continuation step", () => {
+  it("does not require a separate email lookup button before consent", () => {
     const source = readWorkspaceFile("app", "interview", "intake-flow.tsx");
 
-    expect(source).toContain("Check email");
+    expect(source).not.toContain("Check email");
     expect(source).not.toContain(': "Continue"');
+    expect(source).toContain("Set up interview");
   });
 });
 

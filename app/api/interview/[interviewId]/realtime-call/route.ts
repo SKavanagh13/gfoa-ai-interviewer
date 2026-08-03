@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   createRealtimeCall,
   hangUpRealtimeCall,
+  RealtimeCallCreationError,
   type RealtimeCallResult,
 } from "@/lib/openai/realtime";
 import { createAuthorizedParticipantRepository } from "@/lib/interview/route-auth";
@@ -61,6 +62,10 @@ export async function POST(request: Request, context: RouteContext) {
     console.error("Realtime session failed", {
       interviewId,
       reason,
+      openaiStatus:
+        error instanceof RealtimeCallCreationError ? error.status : null,
+      openaiCode:
+        error instanceof RealtimeCallCreationError ? error.apiCode : null,
       message: error instanceof Error ? error.message : "Unknown error",
     });
 
@@ -70,7 +75,14 @@ export async function POST(request: Request, context: RouteContext) {
     );
 
     return NextResponse.json(
-      { error: "Realtime session failed", reason },
+      {
+        error: "Realtime session failed",
+        reason,
+        openaiStatus:
+          error instanceof RealtimeCallCreationError ? error.status : null,
+        openaiCode:
+          error instanceof RealtimeCallCreationError ? error.apiCode : null,
+      },
       { status: 502 },
     );
   }
@@ -83,6 +95,10 @@ type RealtimeStartFailureReason =
   | "realtime_session_failed";
 
 function realtimeStartFailureReason(error: unknown): RealtimeStartFailureReason {
+  if (error instanceof RealtimeCallCreationError) {
+    return "openai_realtime_call_failed";
+  }
+
   if (!(error instanceof Error)) {
     return "realtime_session_failed";
   }

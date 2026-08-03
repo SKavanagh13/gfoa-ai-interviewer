@@ -1,73 +1,24 @@
 "use client";
 
 import { useActionState } from "react";
-import { createInterview, lookupMember } from "@/app/interview/actions";
-import {
-  initialCreateInterviewState,
-  initialLookupState,
-} from "@/app/interview/state";
+import { createInterview } from "@/app/interview/actions";
+import { initialCreateInterviewState } from "@/app/interview/state";
 import { consentDisclosureItems } from "@/lib/intake/consent";
 
 export function IntakeFlow() {
-  const [lookupState, lookupAction, lookupPending] = useActionState(
-    lookupMember,
-    initialLookupState,
-  );
   const [createState, createAction, createPending] = useActionState(
     createInterview,
     initialCreateInterviewState,
   );
-  const source = lookupState.match ? "matched" : "unmatched";
 
   return (
-    <div className="intake-grid">
-      <section className="panel stack" aria-labelledby="lookup-heading">
-        <div>
-          <p className="eyebrow">Step 1</p>
-          <h2 id="lookup-heading">Enter Your Email</h2>
-        </div>
-        <form action={lookupAction} className="form-stack">
-          <label className="field">
-            <span>Email address</span>
-            <input
-              name="email"
-              type="email"
-              required
-              placeholder="you@example.org"
-              defaultValue={lookupState.email}
-            />
-          </label>
-          <ErrorList errors={lookupState.errors} />
-          <button type="submit" disabled={lookupPending}>
-            {lookupPending ? "Checking..." : "Check email"}
-          </button>
-        </form>
-      </section>
-
+    <div className="single-panel-grid">
       <section className="panel stack" aria-labelledby="consent-heading">
         <div>
-          <p className="eyebrow">Step 2</p>
+          <p className="eyebrow">Ready</p>
           <h2 id="consent-heading">Confirm and Consent</h2>
         </div>
-        <form
-          action={createAction}
-          className="form-stack"
-          key={`${source}-${lookupState.match?.gfoaMemberId ?? lookupState.email}`}
-        >
-          <input type="hidden" name="source" value={source} />
-          <input
-            type="hidden"
-            name="gfoaMemberId"
-            value={lookupState.match?.gfoaMemberId ?? ""}
-          />
-
-          {lookupState.searched && lookupState.match ? (
-            <p className="status-note">Confirm your email to continue.</p>
-          ) : null}
-          {lookupState.searched && !lookupState.match ? (
-            <p className="status-note">Confirm your email to continue.</p>
-          ) : null}
-
+        <form action={createAction} className="form-stack">
           <label className="field">
             <span>Email address</span>
             <input
@@ -75,7 +26,6 @@ export function IntakeFlow() {
               type="email"
               required
               placeholder="you@example.org"
-              defaultValue={lookupState.match?.email ?? lookupState.email}
             />
           </label>
 
@@ -91,7 +41,7 @@ export function IntakeFlow() {
           </label>
           <ErrorList errors={createState.errors} />
           <button type="submit" disabled={createPending}>
-            {createPending ? "Creating..." : "Create interview record"}
+            {createPending ? "Setting up..." : "Set up interview"}
           </button>
         </form>
       </section>

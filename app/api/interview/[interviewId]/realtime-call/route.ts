@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { createRealtimeCall } from "@/lib/openai/realtime";
+import {
+  createRealtimeCall,
+  hangUpRealtimeCall,
+  type RealtimeCallResult,
+} from "@/lib/openai/realtime";
 import { createAuthorizedParticipantRepository } from "@/lib/interview/route-auth";
 import { dispatchSidebandWorker } from "@/lib/interview/sideband-dispatcher";
 
@@ -32,8 +36,10 @@ export async function POST(request: Request, context: RouteContext) {
     );
   }
 
+  let realtimeCall: RealtimeCallResult | null = null;
+
   try {
-    const realtimeCall = await createRealtimeCall({
+    realtimeCall = await createRealtimeCall({
       sdpOffer,
       participantContext: liveContext.participantContext,
     });
@@ -46,14 +52,52 @@ export async function POST(request: Request, context: RouteContext) {
 
     return NextResponse.json({ sdpAnswer: realtimeCall.sdpAnswer });
   } catch (error) {
+    const reason = realtimeStartFailureReason(error);
+
+    if (realtimeCall?.callId) {
+      await hangUpRealtimeCall(realtimeCall.callId).catch(() => undefined);
+    }
+
+    console.error("Realtime session failed", {
+      interviewId,
+      reason,
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
+
     await repository.markTechnicalFailure(
       interviewId,
       error instanceof Error ? error.message : "Realtime session failed",
     );
 
     return NextResponse.json(
-      { error: "Realtime session failed" },
+      { error: "Realtime session failed", reason },
       { status: 502 },
     );
   }
+}
+
+type RealtimeStartFailureReason =
+  | "openai_realtime_call_failed"
+  | "openai_realtime_call_missing_id"
+  | "sideband_dispatch_failed"
+  | "realtime_session_failed";
+
+function realtimeStartFailureReason(error: unknown): RealtimeStartFailureReason {
+  if (!(error instanceof Error)) {
+    return "realtime_session_failed";
+  }
+
+  if (error.message.startsWith("Sideband worker dispatch failed with")) {
+    return "sideband_dispatch_failed";
+  }
+
+  if (error.message.startsWith("Realtime call creation failed with")) {
+    return "openai_realtime_call_failed";
+  }
+
+  if (error.message === "Realtime call creation did not return a call ID") {
+    return "openai_realtime_call_missing_id";
+  }
+
+  return "realtime_session_failed";
 }

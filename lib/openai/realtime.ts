@@ -6,6 +6,24 @@ export type RealtimeCallResult = {
   callId: string;
 };
 
+export class RealtimeCallCreationError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly apiMessage: string | null,
+    public readonly apiCode: string | null,
+  ) {
+    super(
+      [
+        `Realtime call creation failed with ${status}`,
+        apiCode ? `code=${apiCode}` : null,
+        apiMessage,
+      ]
+        .filter(Boolean)
+        .join(": "),
+    );
+  }
+}
+
 export type CreateRealtimeCallInput = {
   sdpOffer: string;
   participantContext?: {
@@ -73,7 +91,12 @@ export async function createRealtimeCall(
   });
 
   if (!response.ok) {
-    throw new Error(`Realtime call creation failed with ${response.status}`);
+    const apiError = await readOpenAiError(response);
+    throw new RealtimeCallCreationError(
+      response.status,
+      apiError.message,
+      apiError.code,
+    );
   }
 
   const sdpAnswer = await response.text();
@@ -84,6 +107,27 @@ export async function createRealtimeCall(
   }
 
   return { sdpAnswer, callId };
+}
+
+async function readOpenAiError(
+  response: Response,
+): Promise<{ message: string | null; code: string | null }> {
+  try {
+    const raw = (await response.json()) as {
+      error?: {
+        message?: unknown;
+        code?: unknown;
+      };
+    };
+
+    return {
+      message:
+        typeof raw.error?.message === "string" ? raw.error.message : null,
+      code: typeof raw.error?.code === "string" ? raw.error.code : null,
+    };
+  } catch {
+    return { message: null, code: null };
+  }
 }
 
 export async function hangUpRealtimeCall(

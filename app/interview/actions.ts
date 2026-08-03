@@ -8,8 +8,8 @@ import { getMemberDirectory } from "@/lib/intake/member-directory";
 import {
   interviewInsertFromConsent,
   memberProfileToFormProfile,
+  normalizeEmail,
   participantInsertFromProfile,
-  validateConsentedProfileForm,
   validateEmail,
 } from "@/lib/intake/profile";
 import { SupabaseIntakeRepository } from "@/lib/intake/repository";
@@ -52,7 +52,7 @@ export async function createInterview(
   _previousState: CreateInterviewState,
   formData: FormData,
 ): Promise<CreateInterviewState> {
-  const profileResult = validateConsentedProfileForm(formData);
+  const profileResult = await resolveConsentedEmailOnlyProfile(formData);
 
   if (!profileResult.ok) {
     return { errors: profileResult.errors };
@@ -105,4 +105,42 @@ export async function createInterview(
   });
 
   redirect(`/interview/created?interviewId=${created.interviewId}`);
+}
+
+async function resolveConsentedEmailOnlyProfile(formData: FormData) {
+  if (formData.get("consent") !== "on") {
+    return {
+      ok: false as const,
+      errors: ["Consent is required before the interview can begin."],
+    };
+  }
+
+  const email = normalizeEmail(String(formData.get("email") ?? ""));
+  const emailError = validateEmail(email);
+
+  if (emailError) {
+    return { ok: false as const, errors: [emailError] };
+  }
+
+  const match = await getMemberDirectory().findByEmail(email);
+
+  if (match) {
+    return { ok: true as const, profile: memberProfileToFormProfile(match) };
+  }
+
+  return {
+    ok: true as const,
+    profile: {
+      email,
+      gfoaMemberId: null,
+      name: null,
+      title: null,
+      organizationName: null,
+      governmentType: null,
+      stateOrRegion: null,
+      organizationSizeBand: null,
+      experienceBand: null,
+      matchedProfileWasCorrected: false,
+    },
+  };
 }

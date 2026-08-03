@@ -84,6 +84,12 @@ a {
   grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
 }
 
+.single-panel-grid {
+  display: grid;
+  gap: 20px;
+  max-width: 720px;
+}
+
 .form-stack {
   display: grid;
   gap: 16px;

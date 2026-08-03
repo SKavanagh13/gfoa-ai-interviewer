@@ -125,7 +125,7 @@ export function LiveSessionClient({
 
       if (!response.ok) {
         const failure = await readRealtimeStartFailure(response);
-        throw new Error(realtimeStartFailureMessage(failure.reason));
+        throw new Error(realtimeStartFailureMessage(failure));
       }
 
       const data = (await response.json()) as { sdpAnswer: string };
@@ -289,30 +289,57 @@ function statusLabel(state: LiveState): string {
 
 async function readRealtimeStartFailure(
   response: Response,
-): Promise<{ reason: RealtimeStartFailureReason }> {
+): Promise<{
+  reason: RealtimeStartFailureReason;
+  openaiStatus: number | null;
+  openaiCode: string | null;
+}> {
   try {
     const body = (await response.json()) as {
       reason?: RealtimeStartFailureReason;
+      openaiStatus?: number | null;
+      openaiCode?: string | null;
     };
 
-    return { reason: body.reason ?? "realtime_session_failed" };
+    return {
+      reason: body.reason ?? "realtime_session_failed",
+      openaiStatus: body.openaiStatus ?? null,
+      openaiCode: body.openaiCode ?? null,
+    };
   } catch {
-    return { reason: "realtime_session_failed" };
+    return {
+      reason: "realtime_session_failed",
+      openaiStatus: null,
+      openaiCode: null,
+    };
   }
 }
 
 function realtimeStartFailureMessage(
-  reason: RealtimeStartFailureReason,
+  failure: {
+    reason: RealtimeStartFailureReason;
+    openaiStatus: number | null;
+    openaiCode: string | null;
+  },
 ): string {
-  if (reason === "sideband_dispatch_failed") {
+  if (failure.reason === "sideband_dispatch_failed") {
     return "The voice session was created, but the server capture worker could not be reached or did not authorize the request.";
   }
 
   if (
-    reason === "openai_realtime_call_failed" ||
-    reason === "openai_realtime_call_missing_id"
+    failure.reason === "openai_realtime_call_failed" ||
+    failure.reason === "openai_realtime_call_missing_id"
   ) {
-    return "OpenAI Realtime could not create the voice session.";
+    const detail = [
+      failure.openaiStatus ? `status ${failure.openaiStatus}` : null,
+      failure.openaiCode ? `code ${failure.openaiCode}` : null,
+    ]
+      .filter(Boolean)
+      .join(", ");
+
+    return detail
+      ? `OpenAI Realtime could not create the voice session (${detail}).`
+      : "OpenAI Realtime could not create the voice session.";
   }
 
   return "Could not start the voice session.";

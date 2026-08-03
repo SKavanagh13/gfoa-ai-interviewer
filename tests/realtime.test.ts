@@ -3,6 +3,7 @@ import {
   buildRealtimeSessionPayload,
   createRealtimeCall,
   parseRealtimeCallId,
+  RealtimeCallCreationError,
 } from "@/lib/openai/realtime";
 
 vi.mock("server-only", () => ({}));
@@ -95,5 +96,30 @@ describe("OpenAI Realtime client", () => {
       callId: "rtc_abc",
     });
     expect(JSON.stringify(result)).not.toContain("openai-key");
+  });
+
+  it("preserves sanitized OpenAI error status and code for diagnostics", async () => {
+    const fetchMock = vi.fn(async () => {
+      return Response.json(
+        {
+          error: {
+            message: "The model does not exist or you do not have access.",
+            code: "model_not_found",
+          },
+        },
+        { status: 403 },
+      );
+    });
+
+    await expect(
+      createRealtimeCall({ sdpOffer: "offer-sdp" }, fetchMock as never),
+    ).rejects.toMatchObject({
+      status: 403,
+      apiCode: "model_not_found",
+    } satisfies Partial<RealtimeCallCreationError>);
+
+    await expect(
+      createRealtimeCall({ sdpOffer: "offer-sdp" }, fetchMock as never),
+    ).rejects.not.toThrow("openai-key");
   });
 });

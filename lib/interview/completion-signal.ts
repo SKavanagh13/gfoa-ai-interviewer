@@ -1,5 +1,5 @@
 export const COMPLETED_INTERVIEW_CLOSING_SENTENCE =
-  "Thank you for sharing your perspective with GFOA.";
+  "Thank you for your time today. Please select End interview to conclude our time together.";
 
 export function containsCompletedInterviewClosing(text: string): boolean {
   return normalizeForCompletionSignal(text).endsWith(

@@ -40,6 +40,7 @@ export function LiveSessionClient({
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const startEventSentRef = useRef(false);
 
   useEffect(() => {
     if (
@@ -95,7 +96,10 @@ export function LiveSessionClient({
         peerConnection.addTrack(track, stream);
       });
 
-      peerConnection.createDataChannel("oai-events");
+      const dataChannel = peerConnection.createDataChannel("oai-events");
+      dataChannel.addEventListener("open", () => {
+        sendInitialInterviewerResponse(dataChannel);
+      });
       peerConnection.onconnectionstatechange = () => {
         if (peerConnection.connectionState === "connected") {
           setState("connected");
@@ -207,6 +211,24 @@ export function LiveSessionClient({
     peerConnectionRef.current = null;
     localStreamRef.current?.getTracks().forEach((track) => track.stop());
     localStreamRef.current = null;
+    startEventSentRef.current = false;
+  }
+
+  function sendInitialInterviewerResponse(dataChannel: RTCDataChannel) {
+    if (startEventSentRef.current || dataChannel.readyState !== "open") {
+      return;
+    }
+
+    startEventSentRef.current = true;
+    dataChannel.send(
+      JSON.stringify({
+        type: "response.create",
+        response: {
+          instructions:
+            "Begin the interview now. Speak first with the brief approved opening, then ask the first locked objective question. Do not wait for the participant to say hello.",
+        },
+      }),
+    );
   }
 
   const canStart =
@@ -246,6 +268,18 @@ export function LiveSessionClient({
           <span className="metric-label">Hard cap</span>
           <strong>{formatDuration(hardCapSeconds)}</strong>
         </div>
+      </div>
+
+      <div className="session-notice">
+        <p>
+          The interview covers six big questions. Select Start interview and
+          wait for the interviewer to begin.
+        </p>
+        <p>
+          The interviewer may ask follow-up questions. If it asks too many on
+          one topic, you can say, &quot;we are done with this question, let&apos;s move
+          on.&quot;
+        </p>
       </div>
 
       {error ? <p className="form-error">{error}</p> : null}

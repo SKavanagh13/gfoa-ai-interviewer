@@ -71,8 +71,13 @@ describe("OpenAI Realtime client", () => {
     expect(payload.instructions).toContain("Locked Operating Principles");
     expect(payload.instructions).toContain("Locked Interview Guide");
     expect(payload.instructions).toContain("Do not perform post-interview analysis");
+    expect(payload.instructions).toContain("Ask at most one concise follow-up");
     expect(payload.instructions).toContain(
-      "Thank you for sharing your perspective with GFOA.",
+      "Where do you most often feel tension between what looks right on paper and what works in practice?",
+    );
+    expect(payload.instructions).toContain("Do not recap after every objective");
+    expect(payload.instructions).toContain(
+      "Please select End interview to conclude our time together.",
     );
   });
 

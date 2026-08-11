@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { createInterview } from "@/app/interview/actions";
 import { CONSENT_VERSION } from "@/lib/intake/consent";
@@ -129,13 +129,28 @@ describe("intake profile validation", () => {
 });
 
 describe("email-only intake UI", () => {
-  it("does not require a separate email lookup button before consent", () => {
+  it("uses a local email confirmation step before consent-backed creation", () => {
     const source = readWorkspaceFile("app", "interview", "intake-flow.tsx");
 
     expect(source).not.toContain("Check email");
-    expect(source).not.toContain(': "Continue"');
     expect(source).toContain('name="confirmEmail"');
-    expect(source).toContain("Set up interview");
+    expect(source).toContain('type="hidden" value={normalizedEmail}');
+    expect(source).toContain("Continue to setup");
+    expect(source).toContain('name="consent"');
+  });
+
+  it("keeps the Claude Design handoff package reviewable in docs", () => {
+    expect(
+      existsSync(
+        path.join(
+          process.cwd(),
+          "docs",
+          "design",
+          "claude-design",
+          "IMPLEMENTATION_GUIDE.md",
+        ),
+      ),
+    ).toBe(true);
   });
 });
 

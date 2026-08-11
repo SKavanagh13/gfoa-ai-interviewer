@@ -476,6 +476,21 @@ export function LiveSessionClient({
       <h1 id="live-heading">{liveHeading(state)}</h1>
       <p className="lp-muted">{liveDescription(state, hardCapSeconds)}</p>
 
+      <div className="session-metrics" aria-label="Session timing">
+        <div>
+          <span className="metric-label">Elapsed</span>
+          <strong>{formatDuration(elapsedSeconds)}</strong>
+        </div>
+        <div>
+          <span className="metric-label">Target</span>
+          <strong>{formatDuration(targetSeconds)}</strong>
+        </div>
+        <div>
+          <span className="metric-label">Hard cap</span>
+          <strong>{formatDuration(hardCapSeconds)}</strong>
+        </div>
+      </div>
+
       {canContinue ? (
         <div className="lp-time-pill" role="status">
           We are coming up on time. Continue only if you are comfortable going

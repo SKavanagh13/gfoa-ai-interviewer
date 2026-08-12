@@ -31,7 +31,7 @@ type RealtimeStartFailureReason =
   | "realtime_session_failed";
 
 const PREINTERVIEW_GUIDANCE =
-  'This is intended to feel like a conversational interview. There are six big questions the interview will cover. It may have follow-up questions on your answers, and it may pause for a second or two to make sure you are done talking before moving on. It will tell you when all the questions are complete, thank you, and ask you to end the interview. We have asked it to restrain its follow-ups so the conversation can cover each objective. If needed, you can say, "we are done with this question, let\'s move on."';
+  'This is intended to feel like a conversational interview. There are six big questions the interview will cover. It may have follow-up questions on your answers. The interviewer may wait a second or two after you finish speaking so it does not cut you off. It will tell you when all the questions are complete, thank you, and ask you to end the interview. We have asked it to restrain its follow-ups so the conversation can cover each objective. If needed, you can say, "we are done with this question, let\'s move on."';
 const INTERVIEWER_AUDIO_UNMUTE_FALLBACK_MS = 45000;
 
 export function LiveSessionClient({
@@ -570,12 +570,16 @@ export function LiveSessionClient({
       {error ? <p className="lp-field-error">{error}</p> : null}
 
       <button
-        className="lp-end-button"
+        className={
+          state === "ending"
+            ? "lp-end-button lp-end-button-complete"
+            : "lp-end-button"
+        }
         type="button"
         onClick={() => void endSession()}
         disabled={!canEnd}
       >
-        End interview
+        {state === "ending" ? "Ending interview..." : "End interview"}
       </button>
     </section>
   );

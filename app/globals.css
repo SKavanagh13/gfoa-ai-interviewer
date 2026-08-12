@@ -611,19 +611,32 @@ input:focus-visible {
 }
 
 .lp-end-button {
-  bottom: 28px;
+  align-items: center;
+  align-self: center;
   border: 1px solid var(--input-border);
   border-radius: 999px;
   color: var(--muted);
+  display: inline-flex;
   font-size: 0.92rem;
   font-weight: 700;
+  justify-content: center;
+  justify-self: center;
+  margin-top: 10px;
+  min-width: 148px;
   padding: 10px 16px;
-  position: absolute;
 }
 
 .lp-end-button:hover:not(:disabled) {
   background: var(--subtle);
   color: var(--foreground);
+}
+
+.lp-end-button-complete,
+.lp-end-button-complete:disabled {
+  background: #1f7a4d;
+  border-color: #1f7a4d;
+  color: #ffffff;
+  opacity: 1;
 }
 
 .lp-processing-dots {

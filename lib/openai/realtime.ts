@@ -54,7 +54,7 @@ export function buildRealtimeSessionPayload(input: CreateRealtimeCallInput) {
           type: "server_vad",
           threshold: 0.5,
           prefix_padding_ms: 300,
-          silence_duration_ms: 1200,
+          silence_duration_ms: 3000,
           create_response: true,
           interrupt_response: false,
         },

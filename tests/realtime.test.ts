@@ -72,7 +72,7 @@ describe("OpenAI Realtime client", () => {
       type: "server_vad",
       threshold: 0.5,
       prefix_padding_ms: 300,
-      silence_duration_ms: 1200,
+      silence_duration_ms: 3000,
       create_response: true,
       interrupt_response: false,
     });
@@ -93,6 +93,15 @@ describe("OpenAI Realtime client", () => {
     expect(payload.instructions).toContain("Ask at most one concise follow-up");
     expect(payload.instructions).toContain(
       "Do not infer or complete the participant's answer from a partial response",
+    );
+    expect(payload.instructions).toContain(
+      "Brief silence, hesitation, breath sounds, keyboard noise, or other ambiguous background noise are not answers",
+    );
+    expect(payload.instructions).toContain(
+      "Give the participant several seconds to think after each question",
+    );
+    expect(payload.instructions).toContain(
+      "Avoid filler acknowledgments such as understood",
     );
     expect(payload.instructions).toContain(
       "Where do you most often feel tension between what looks right on paper and what works in practice?",

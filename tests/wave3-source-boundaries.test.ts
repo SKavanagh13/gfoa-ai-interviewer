@@ -184,11 +184,30 @@ describe("Wave 3 route and runtime boundaries", () => {
     expect(client).toContain("noiseSuppression: true");
     expect(client).toContain("autoGainControl: true");
     expect(client).toContain("openingResponsePendingRef");
+    expect(client).toContain("interviewerAudioPendingRef");
+    expect(client).toContain("INTERVIEWER_AUDIO_UNMUTE_FALLBACK_MS");
     expect(client).toMatch(/setMicrophoneEnabled\(false\)[\s\S]*sendInitialInterviewerResponse/);
-    expect(client).toContain('parsed.type === "response.done"');
-    expect(client).toContain('parsed.type === "response.audio.done"');
-    expect(client).toContain('parsed.type === "output_audio_buffer.stopped"');
+    expect(client).toContain('type === "response.audio.delta"');
+    expect(client).toContain('type === "response.output_audio.delta"');
+    expect(client).toContain('type === "output_audio_buffer.started"');
+    expect(client).toContain('type === "response.done"');
+    expect(client).toContain('type === "response.audio.done"');
+    expect(client).toContain('type === "output_audio_buffer.stopped"');
+    expect(client).toContain('type === "response.output_audio.done"');
+    expect(client).toContain("muteForInterviewerAudio");
+    expect(client).toContain("releaseInterviewerAudioMute");
+    expect(client).toContain("enableMicrophoneIfAllowed");
+    expect(client).toContain("awaiting_continuation_consent");
     expect(client).toContain("unmuteAfterOpeningResponse");
+    expect(prompt).toContain(
+      "Brief silence, hesitation, breath sounds, keyboard noise, or other ambiguous background noise are not answers",
+    );
+    expect(prompt).toContain(
+      "Give the participant several seconds to think after each question",
+    );
+    expect(prompt).toContain(
+      "Avoid filler acknowledgments such as understood",
+    );
     expect(client).toContain("Thank you for participating.");
     expect(client).toContain("You may close this browser window.");
   });

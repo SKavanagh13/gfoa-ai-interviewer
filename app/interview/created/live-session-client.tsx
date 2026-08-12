@@ -32,6 +32,7 @@ type RealtimeStartFailureReason =
 
 const PREINTERVIEW_GUIDANCE =
   'This is intended to feel like a conversational interview. There are six big questions the interview will cover. It may have follow-up questions on your answers, and it may pause for a second or two to make sure you are done talking before moving on. It will tell you when all the questions are complete, thank you, and ask you to end the interview. We have asked it to restrain its follow-ups so the conversation can cover each objective. If needed, you can say, "we are done with this question, let\'s move on."';
+const INTERVIEWER_AUDIO_UNMUTE_FALLBACK_MS = 45000;
 
 export function LiveSessionClient({
   interviewId,
@@ -45,6 +46,7 @@ export function LiveSessionClient({
     string | null
   >(null);
   const [error, setError] = useState<string | null>(null);
+  const stateRef = useRef<LiveState>("mic_check");
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -52,6 +54,12 @@ export function LiveSessionClient({
   const startEventSentRef = useRef(false);
   const openingResponsePendingRef = useRef(false);
   const openingUnmuteTimeoutRef = useRef<number | null>(null);
+  const interviewerAudioPendingRef = useRef(false);
+  const interviewerAudioUnmuteTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   useEffect(() => {
     if (
@@ -70,6 +78,8 @@ export function LiveSessionClient({
       if (nextElapsed >= hardCapSeconds) {
         void endSession();
       } else if (!continuationConsentedAt && nextElapsed >= targetSeconds) {
+        clearInterviewerAudioUnmuteTimeout();
+        interviewerAudioPendingRef.current = false;
         setMicrophoneEnabled(false);
         setState("awaiting_continuation_consent");
       } else if (
@@ -285,6 +295,7 @@ export function LiveSessionClient({
     localStreamRef.current = null;
     startEventSentRef.current = false;
     openingResponsePendingRef.current = false;
+    interviewerAudioPendingRef.current = false;
     if (micCheckTimeoutRef.current) {
       window.clearTimeout(micCheckTimeoutRef.current);
       micCheckTimeoutRef.current = null;
@@ -293,6 +304,7 @@ export function LiveSessionClient({
       window.clearTimeout(openingUnmuteTimeoutRef.current);
       openingUnmuteTimeoutRef.current = null;
     }
+    clearInterviewerAudioUnmuteTimeout();
   }
 
   function sendInitialInterviewerResponse(dataChannel: RTCDataChannel) {
@@ -315,18 +327,21 @@ export function LiveSessionClient({
   }
 
   function handleRealtimeDataChannelMessage(event: MessageEvent) {
-    if (!openingResponsePendingRef.current || typeof event.data !== "string") {
+    if (typeof event.data !== "string") {
       return;
     }
 
     try {
       const parsed = JSON.parse(event.data) as { type?: unknown };
-      if (
-        parsed.type === "response.done" ||
-        parsed.type === "response.audio.done" ||
-        parsed.type === "output_audio_buffer.stopped"
-      ) {
-        unmuteAfterOpeningResponse();
+      if (isInterviewerAudioStartEvent(parsed.type)) {
+        muteForInterviewerAudio();
+      }
+
+      if (isInterviewerAudioDoneEvent(parsed.type)) {
+        if (openingResponsePendingRef.current) {
+          unmuteAfterOpeningResponse();
+        }
+        releaseInterviewerAudioMute();
       }
     } catch {
       return;
@@ -343,7 +358,54 @@ export function LiveSessionClient({
       window.clearTimeout(openingUnmuteTimeoutRef.current);
       openingUnmuteTimeoutRef.current = null;
     }
+    enableMicrophoneIfAllowed();
+  }
+
+  function muteForInterviewerAudio() {
+    interviewerAudioPendingRef.current = true;
+    setMicrophoneEnabled(false);
+    clearInterviewerAudioUnmuteTimeout();
+    interviewerAudioUnmuteTimeoutRef.current = window.setTimeout(() => {
+      releaseInterviewerAudioMute();
+    }, INTERVIEWER_AUDIO_UNMUTE_FALLBACK_MS);
+  }
+
+  function releaseInterviewerAudioMute() {
+    if (!interviewerAudioPendingRef.current) {
+      return;
+    }
+
+    interviewerAudioPendingRef.current = false;
+    clearInterviewerAudioUnmuteTimeout();
+    enableMicrophoneIfAllowed();
+  }
+
+  function enableMicrophoneIfAllowed() {
+    if (shouldKeepMicrophoneMuted()) {
+      return;
+    }
+
     setMicrophoneEnabled(true);
+  }
+
+  function shouldKeepMicrophoneMuted() {
+    return [
+      "mic_check",
+      "mic_checking",
+      "mic_ready",
+      "awaiting_continuation_consent",
+      "ending",
+      "ended",
+      "microphone_denied",
+      "failed",
+    ].includes(stateRef.current);
+  }
+
+  function clearInterviewerAudioUnmuteTimeout() {
+    if (interviewerAudioUnmuteTimeoutRef.current) {
+      window.clearTimeout(interviewerAudioUnmuteTimeoutRef.current);
+      interviewerAudioUnmuteTimeoutRef.current = null;
+    }
   }
 
   const canEnd =
@@ -521,6 +583,23 @@ export function LiveSessionClient({
 
 function statusLabel(state: LiveState): string {
   return state.replaceAll("_", " ");
+}
+
+function isInterviewerAudioStartEvent(type: unknown): boolean {
+  return (
+    type === "response.audio.delta" ||
+    type === "response.output_audio.delta" ||
+    type === "output_audio_buffer.started"
+  );
+}
+
+function isInterviewerAudioDoneEvent(type: unknown): boolean {
+  return (
+    type === "response.done" ||
+    type === "response.audio.done" ||
+    type === "response.output_audio.done" ||
+    type === "output_audio_buffer.stopped"
+  );
 }
 
 function liveHeading(state: LiveState): string {

@@ -163,7 +163,8 @@ export function IntakeFlow() {
             mechanical survey. The interviewer will ask questions and may ask
             follow-ups depending on your answers. It will move through its list,
             tell you when the questions are complete, thank you, and then ask
-            you to end the interview.
+            you to end the interview. It may wait a second or two after you
+            finish speaking so it does not cut you off.
           </p>
         </div>
 

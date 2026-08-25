@@ -174,7 +174,7 @@ describe("Wave 3 route and runtime boundaries", () => {
     expect(prompt).toContain("LIVE_INTERVIEW_OPENING_SCRIPT");
     expect(client).toContain("six big questions");
     expect(client).toContain("It may have follow-up questions on your");
-    expect(client).toContain("pause for a second or two");
+    expect(client).toContain("wait a second or two after you finish speaking");
     expect(client).toContain("restrain its");
     expect(client).toContain("we are done with this question");
     expect(prompt).toContain(
@@ -190,13 +190,14 @@ describe("Wave 3 route and runtime boundaries", () => {
     expect(client).toContain('type === "response.audio.delta"');
     expect(client).toContain('type === "response.output_audio.delta"');
     expect(client).toContain('type === "output_audio_buffer.started"');
-    expect(client).toContain('type === "response.done"');
-    expect(client).toContain('type === "response.audio.done"');
     expect(client).toContain('type === "output_audio_buffer.stopped"');
-    expect(client).toContain('type === "response.output_audio.done"');
+    expect(client).not.toContain('type === "response.done"');
+    expect(client).not.toContain('type === "response.audio.done"');
+    expect(client).not.toContain('type === "response.output_audio.done"');
     expect(client).toContain("muteForInterviewerAudio");
     expect(client).toContain("releaseInterviewerAudioMute");
     expect(client).toContain("enableMicrophoneIfAllowed");
+    expect(client).toContain("interviewerAudioPendingRef.current");
     expect(client).toContain("awaiting_continuation_consent");
     expect(client).toContain("unmuteAfterOpeningResponse");
     expect(prompt).toContain(
@@ -210,6 +211,57 @@ describe("Wave 3 route and runtime boundaries", () => {
     );
     expect(client).toContain("Thank you for participating.");
     expect(client).toContain("You may close this browser window.");
+  });
+
+  it("shows a passive red or green microphone status on the live screen", () => {
+    const client = readWorkspaceFile(
+      "app",
+      "interview",
+      "created",
+      "live-session-client.tsx",
+    );
+    const styles = readWorkspaceFile("app", "globals.css");
+
+    expect(client).toContain("isMicrophoneEnabled");
+    expect(client).toContain("<MicStatus isEnabled={isMicrophoneEnabled} />");
+    expect(client).toContain("Mic on");
+    expect(client).toContain("Mic muted");
+    expect(client).toContain("This is automatic based on whose turn it is to speak.");
+    expect(client).toContain("Microphone on. You can speak now.");
+    expect(client).toContain("Microphone muted automatically.");
+    expect(styles).toContain(".lp-mic-status-on");
+    expect(styles).toContain(".lp-mic-status-muted");
+    expect(styles).toContain("border-color: #2f8f5b");
+    expect(styles).toContain("border-color: #d34d4d");
+  });
+
+  it("uses the Listening Post as the root participant entry point", () => {
+    const home = readWorkspaceFile("app", "page.tsx");
+    const intake = readWorkspaceFile("app", "interview", "intake-flow.tsx");
+
+    expect(home).toContain("IntakeFlow");
+    expect(home).toContain("listening-page-shell");
+    expect(home).not.toContain("Admin review");
+    expect(home).not.toContain("Project routes");
+    expect(intake).toContain("The Listening Post");
+    expect(intake).toContain("Begin the interview");
+    expect(intake).toContain("wait a second or two after you");
+  });
+
+  it("centers the live end button and shows a completion state while ending", () => {
+    const client = readWorkspaceFile(
+      "app",
+      "interview",
+      "created",
+      "live-session-client.tsx",
+    );
+    const styles = readWorkspaceFile("app", "globals.css");
+
+    expect(client).toContain("lp-end-button-complete");
+    expect(client).toContain("Ending interview...");
+    expect(styles).toContain("justify-self: center");
+    expect(styles).toContain(".lp-end-button-complete");
+    expect(styles).toContain("background: #1f7a4d");
   });
 
   it("keeps the participant ready pages free of redundant Ready eyebrow labels", () => {

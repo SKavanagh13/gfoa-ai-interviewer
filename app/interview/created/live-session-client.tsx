@@ -31,7 +31,7 @@ type RealtimeStartFailureReason =
   | "realtime_session_failed";
 
 const PREINTERVIEW_GUIDANCE =
-  'This is intended to feel like a conversational interview. There are six big questions the interview will cover. It may have follow-up questions on your answers, and it may pause for a second or two to make sure you are done talking before moving on. It will tell you when all the questions are complete, thank you, and ask you to end the interview. We have asked it to restrain its follow-ups so the conversation can cover each objective. If needed, you can say, "we are done with this question, let\'s move on."';
+  'This is intended to feel like a conversational interview. There are six big questions the interview will cover. It may have follow-up questions on your answers. The interviewer may wait a second or two after you finish speaking so it does not cut you off. It will tell you when all the questions are complete, thank you, and ask you to end the interview. We have asked it to restrain its follow-ups so the conversation can cover each objective. If needed, you can say, "we are done with this question, let\'s move on."';
 const INTERVIEWER_AUDIO_UNMUTE_FALLBACK_MS = 45000;
 
 export function LiveSessionClient({
@@ -46,6 +46,7 @@ export function LiveSessionClient({
     string | null
   >(null);
   const [error, setError] = useState<string | null>(null);
+  const [isMicrophoneEnabled, setIsMicrophoneEnabled] = useState(false);
   const stateRef = useRef<LiveState>("mic_check");
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -123,6 +124,7 @@ export function LiveSessionClient({
     if (previewMode) {
       setState("connecting");
       window.setTimeout(() => {
+        setIsMicrophoneEnabled(true);
         setState("connected");
       }, 900);
       return;
@@ -230,6 +232,7 @@ export function LiveSessionClient({
 
     if (previewMode) {
       setContinuationConsentedAt(new Date().toISOString());
+      setIsMicrophoneEnabled(true);
       setState("connected");
       return;
     }
@@ -283,6 +286,7 @@ export function LiveSessionClient({
   }
 
   function setMicrophoneEnabled(enabled: boolean) {
+    setIsMicrophoneEnabled(enabled);
     localStreamRef.current?.getAudioTracks().forEach((track) => {
       track.enabled = enabled;
     });
@@ -293,6 +297,7 @@ export function LiveSessionClient({
     peerConnectionRef.current = null;
     localStreamRef.current?.getTracks().forEach((track) => track.stop());
     localStreamRef.current = null;
+    setIsMicrophoneEnabled(false);
     startEventSentRef.current = false;
     openingResponsePendingRef.current = false;
     interviewerAudioPendingRef.current = false;
@@ -389,6 +394,10 @@ export function LiveSessionClient({
   }
 
   function shouldKeepMicrophoneMuted() {
+    if (interviewerAudioPendingRef.current) {
+      return true;
+    }
+
     return [
       "mic_check",
       "mic_checking",
@@ -553,6 +562,8 @@ export function LiveSessionClient({
         </div>
       </div>
 
+      <MicStatus isEnabled={isMicrophoneEnabled} />
+
       {canContinue ? (
         <div className="lp-time-pill" role="status">
           We are coming up on time. Continue only if you are comfortable going
@@ -570,12 +581,16 @@ export function LiveSessionClient({
       {error ? <p className="lp-field-error">{error}</p> : null}
 
       <button
-        className="lp-end-button"
+        className={
+          state === "ending"
+            ? "lp-end-button lp-end-button-complete"
+            : "lp-end-button"
+        }
         type="button"
         onClick={() => void endSession()}
         disabled={!canEnd}
       >
-        End interview
+        {state === "ending" ? "Ending interview..." : "End interview"}
       </button>
     </section>
   );
@@ -594,12 +609,7 @@ function isInterviewerAudioStartEvent(type: unknown): boolean {
 }
 
 function isInterviewerAudioDoneEvent(type: unknown): boolean {
-  return (
-    type === "response.done" ||
-    type === "response.audio.done" ||
-    type === "response.output_audio.done" ||
-    type === "output_audio_buffer.stopped"
-  );
+  return type === "output_audio_buffer.stopped";
 }
 
 function liveHeading(state: LiveState): string {
@@ -734,6 +744,35 @@ function LiveStatusVisual({
   return (
     <div className={`lp-live-visual lp-live-${state}`} aria-hidden="true">
       <SignalTower animated />
+    </div>
+  );
+}
+
+function MicStatus({ isEnabled }: { isEnabled: boolean }) {
+  return (
+    <div
+      className={
+        isEnabled ? "lp-mic-status lp-mic-status-on" : "lp-mic-status lp-mic-status-muted"
+      }
+      role="status"
+      aria-live="polite"
+      aria-label={
+        isEnabled
+          ? "Microphone on. You can speak now."
+          : "Microphone muted automatically."
+      }
+    >
+      <span className="lp-mic-icon" aria-hidden="true">
+        <span className="lp-mic-head" />
+        <span className="lp-mic-stem" />
+        <span className="lp-mic-base" />
+      </span>
+      <span className="lp-mic-status-copy">
+        <strong>{isEnabled ? "Mic on" : "Mic muted"}</strong>
+        <span>
+          This is automatic based on whose turn it is to speak.
+        </span>
+      </span>
     </div>
   );
 }

@@ -598,6 +598,97 @@ input:focus-visible {
   padding: 10px 16px;
 }
 
+.lp-mic-status {
+  align-items: center;
+  border: 1px solid var(--input-border);
+  border-radius: 999px;
+  display: inline-flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 18px;
+  max-width: min(100%, 460px);
+  padding: 10px 16px 10px 12px;
+}
+
+.lp-mic-status-on {
+  background: #eef8f2;
+  border-color: #2f8f5b;
+  color: #1f7a4d;
+}
+
+.lp-mic-status-muted {
+  background: #fff1f1;
+  border-color: #d34d4d;
+  color: #a82727;
+}
+
+.lp-mic-icon {
+  align-items: center;
+  background: currentColor;
+  border-radius: 999px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 36px;
+  justify-content: center;
+  position: relative;
+  width: 36px;
+}
+
+.lp-mic-head {
+  background: #ffffff;
+  border-radius: 999px;
+  height: 14px;
+  position: absolute;
+  top: 8px;
+  width: 10px;
+}
+
+.lp-mic-stem {
+  background: #ffffff;
+  border-radius: 999px;
+  height: 8px;
+  position: absolute;
+  top: 21px;
+  width: 3px;
+}
+
+.lp-mic-base {
+  border: 2px solid #ffffff;
+  border-left: 0;
+  border-radius: 0 999px 999px 0;
+  height: 14px;
+  position: absolute;
+  top: 12px;
+  transform: rotate(90deg);
+  width: 18px;
+}
+
+.lp-mic-status-muted .lp-mic-icon::after {
+  background: #ffffff;
+  border-radius: 999px;
+  content: "";
+  height: 3px;
+  position: absolute;
+  transform: rotate(-42deg);
+  width: 26px;
+}
+
+.lp-mic-status-copy {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+
+.lp-mic-status-copy strong {
+  font-size: 0.95rem;
+}
+
+.lp-mic-status-copy span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
 .lp-inline-button,
 .lp-end-button {
   background: transparent;
@@ -611,19 +702,32 @@ input:focus-visible {
 }
 
 .lp-end-button {
-  bottom: 28px;
+  align-items: center;
+  align-self: center;
   border: 1px solid var(--input-border);
   border-radius: 999px;
   color: var(--muted);
+  display: inline-flex;
   font-size: 0.92rem;
   font-weight: 700;
+  justify-content: center;
+  justify-self: center;
+  margin-top: 10px;
+  min-width: 148px;
   padding: 10px 16px;
-  position: absolute;
 }
 
 .lp-end-button:hover:not(:disabled) {
   background: var(--subtle);
   color: var(--foreground);
+}
+
+.lp-end-button-complete,
+.lp-end-button-complete:disabled {
+  background: #1f7a4d;
+  border-color: #1f7a4d;
+  color: #ffffff;
+  opacity: 1;
 }
 
 .lp-processing-dots {

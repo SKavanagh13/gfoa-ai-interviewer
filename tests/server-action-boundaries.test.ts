@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 const serverActionFiles = [
   "app/admin/actions.ts",
   "app/admin/login/actions.ts",
+  "app/admin/update-password/actions.ts",
   "app/interview/actions.ts",
 ];
 

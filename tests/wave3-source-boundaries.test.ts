@@ -190,13 +190,14 @@ describe("Wave 3 route and runtime boundaries", () => {
     expect(client).toContain('type === "response.audio.delta"');
     expect(client).toContain('type === "response.output_audio.delta"');
     expect(client).toContain('type === "output_audio_buffer.started"');
-    expect(client).toContain('type === "response.done"');
-    expect(client).toContain('type === "response.audio.done"');
     expect(client).toContain('type === "output_audio_buffer.stopped"');
-    expect(client).toContain('type === "response.output_audio.done"');
+    expect(client).not.toContain('type === "response.done"');
+    expect(client).not.toContain('type === "response.audio.done"');
+    expect(client).not.toContain('type === "response.output_audio.done"');
     expect(client).toContain("muteForInterviewerAudio");
     expect(client).toContain("releaseInterviewerAudioMute");
     expect(client).toContain("enableMicrophoneIfAllowed");
+    expect(client).toContain("interviewerAudioPendingRef.current");
     expect(client).toContain("awaiting_continuation_consent");
     expect(client).toContain("unmuteAfterOpeningResponse");
     expect(prompt).toContain(
@@ -210,6 +211,28 @@ describe("Wave 3 route and runtime boundaries", () => {
     );
     expect(client).toContain("Thank you for participating.");
     expect(client).toContain("You may close this browser window.");
+  });
+
+  it("shows a passive red or green microphone status on the live screen", () => {
+    const client = readWorkspaceFile(
+      "app",
+      "interview",
+      "created",
+      "live-session-client.tsx",
+    );
+    const styles = readWorkspaceFile("app", "globals.css");
+
+    expect(client).toContain("isMicrophoneEnabled");
+    expect(client).toContain("<MicStatus isEnabled={isMicrophoneEnabled} />");
+    expect(client).toContain("Mic on");
+    expect(client).toContain("Mic muted");
+    expect(client).toContain("This is automatic based on whose turn it is to speak.");
+    expect(client).toContain("Microphone on. You can speak now.");
+    expect(client).toContain("Microphone muted automatically.");
+    expect(styles).toContain(".lp-mic-status-on");
+    expect(styles).toContain(".lp-mic-status-muted");
+    expect(styles).toContain("border-color: #2f8f5b");
+    expect(styles).toContain("border-color: #d34d4d");
   });
 
   it("uses the Listening Post as the root participant entry point", () => {

@@ -1,4 +1,5 @@
 import { IntakeFlow } from "@/app/interview/intake-flow";
+import { defaultEmailLinkLandingForAuthType } from "@/lib/admin/auth-redirect";
 import { redirect } from "next/navigation";
 
 type HomePageProps = {
@@ -16,7 +17,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   }
 
   if (tokenHash && type) {
-    redirect(withAuthParams("/auth/confirm", params));
+    redirect(withAuthParams(defaultEmailLinkLandingForAuthType(type), params));
   }
 
   return (
@@ -31,7 +32,7 @@ function getFirstParam(value: string | string[] | undefined) {
 }
 
 function withAuthParams(
-  pathname: "/auth/callback" | "/auth/confirm",
+  pathname: "/admin/recover" | "/auth/callback" | "/auth/confirm",
   params: Record<string, string | string[] | undefined> | undefined,
 ) {
   const nextParams = new URLSearchParams();

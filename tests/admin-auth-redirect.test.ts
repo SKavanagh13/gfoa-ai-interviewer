@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_ADMIN_AUTH_REDIRECT,
+  PASSWORD_RECOVERY_CONFIRM,
   PASSWORD_RECOVERY_REDIRECT,
+  defaultEmailLinkLandingForAuthType,
   defaultRedirectForAuthType,
   safeAdminAuthRedirect,
 } from "@/lib/admin/auth-redirect";
@@ -29,6 +31,15 @@ describe("admin auth email-link redirects", () => {
     );
     expect(defaultRedirectForAuthType("magiclink")).toBe(
       DEFAULT_ADMIN_AUTH_REDIRECT,
+    );
+  });
+
+  it("lands recovery email links on the prefetch-safe confirmation page", () => {
+    expect(defaultEmailLinkLandingForAuthType("recovery")).toBe(
+      PASSWORD_RECOVERY_CONFIRM,
+    );
+    expect(defaultEmailLinkLandingForAuthType("magiclink")).toBe(
+      "/auth/confirm",
     );
   });
 });

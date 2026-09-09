@@ -584,6 +584,10 @@ input:focus-visible {
   opacity: 0.74;
 }
 
+.lp-live-speaking .lp-ring {
+  animation-duration: 1.75s;
+}
+
 .lp-time-pill {
   align-items: center;
   background: var(--subtle);
@@ -596,6 +600,39 @@ input:focus-visible {
   justify-content: center;
   margin-top: 18px;
   padding: 10px 16px;
+}
+
+.lp-presence-cue {
+  align-items: center;
+  background: var(--subtle);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 0.9rem;
+  font-weight: 700;
+  gap: 9px;
+  justify-content: center;
+  margin-top: 18px;
+  max-width: min(100%, 460px);
+  min-height: 38px;
+  padding: 8px 14px;
+}
+
+.lp-presence-dot {
+  background: var(--quiet);
+  border-radius: 999px;
+  display: inline-block;
+  flex: 0 0 auto;
+  height: 9px;
+  opacity: 0.58;
+  width: 9px;
+}
+
+.lp-presence-dot-active {
+  animation: lp-presence 1.35s ease-in-out infinite;
+  background: #1f7a4d;
+  opacity: 1;
 }
 
 .lp-mic-status {
@@ -870,6 +907,16 @@ input:focus-visible {
   }
   50% {
     transform: translateY(-8px);
+  }
+}
+
+@keyframes lp-presence {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(31, 122, 77, 0.32);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgba(31, 122, 77, 0);
   }
 }
 

@@ -10,7 +10,7 @@ type LiveSessionClientProps = {
   previewMode?: boolean;
 };
 
-type LiveState =
+export type LiveState =
   | "mic_check"
   | "mic_checking"
   | "mic_ready"
@@ -23,6 +23,13 @@ type LiveState =
   | "ended"
   | "microphone_denied"
   | "failed";
+
+type LiveVisualState =
+  | "connecting"
+  | "listening"
+  | "speaking"
+  | "processing"
+  | "approaching";
 
 type RealtimeStartFailureReason =
   | "openai_realtime_call_failed"
@@ -47,6 +54,7 @@ export function LiveSessionClient({
   >(null);
   const [error, setError] = useState<string | null>(null);
   const [isMicrophoneEnabled, setIsMicrophoneEnabled] = useState(false);
+  const [isInterviewerSpeaking, setIsInterviewerSpeaking] = useState(false);
   const stateRef = useRef<LiveState>("mic_check");
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -301,6 +309,7 @@ export function LiveSessionClient({
     startEventSentRef.current = false;
     openingResponsePendingRef.current = false;
     interviewerAudioPendingRef.current = false;
+    setIsInterviewerSpeaking(false);
     if (micCheckTimeoutRef.current) {
       window.clearTimeout(micCheckTimeoutRef.current);
       micCheckTimeoutRef.current = null;
@@ -368,6 +377,7 @@ export function LiveSessionClient({
 
   function muteForInterviewerAudio() {
     interviewerAudioPendingRef.current = true;
+    setIsInterviewerSpeaking(true);
     setMicrophoneEnabled(false);
     clearInterviewerAudioUnmuteTimeout();
     interviewerAudioUnmuteTimeoutRef.current = window.setTimeout(() => {
@@ -381,6 +391,7 @@ export function LiveSessionClient({
     }
 
     interviewerAudioPendingRef.current = false;
+    setIsInterviewerSpeaking(false);
     clearInterviewerAudioUnmuteTimeout();
     enableMicrophoneIfAllowed();
   }
@@ -521,14 +532,11 @@ export function LiveSessionClient({
     );
   }
 
-  const visualState =
-    state === "connecting" || state === "requesting_microphone"
-      ? "connecting"
-      : state === "ending"
-        ? "processing"
-        : state === "near_limit" || state === "awaiting_continuation_consent"
-          ? "approaching"
-          : "listening";
+  const visualState = liveVisualState(
+    state,
+    isMicrophoneEnabled,
+    isInterviewerSpeaking,
+  );
 
   return (
     <section className="lp-card lp-card-live" aria-labelledby="live-heading">
@@ -545,7 +553,9 @@ export function LiveSessionClient({
 
       <LiveStatusVisual state={visualState} />
       <h1 id="live-heading">{liveHeading(state)}</h1>
-      <p className="lp-muted">{liveDescription(state, hardCapSeconds)}</p>
+      <p className="lp-muted">
+        {liveDescription(state, hardCapSeconds, isInterviewerSpeaking)}
+      </p>
 
       <div className="session-metrics" aria-label="Session timing">
         <div>
@@ -562,7 +572,15 @@ export function LiveSessionClient({
         </div>
       </div>
 
-      <MicStatus isEnabled={isMicrophoneEnabled} />
+      <PresenceCue
+        isListening={isMicrophoneEnabled}
+        isInterviewerSpeaking={isInterviewerSpeaking}
+      />
+
+      <MicStatus
+        isEnabled={isMicrophoneEnabled}
+        isInterviewerSpeaking={isInterviewerSpeaking}
+      />
 
       {canContinue ? (
         <div className="lp-time-pill" role="status">
@@ -628,7 +646,35 @@ function liveHeading(state: LiveState): string {
   return "Interview in progress";
 }
 
-function liveDescription(state: LiveState, hardCapSeconds: number): string {
+export function liveVisualState(
+  state: LiveState,
+  isMicrophoneEnabled: boolean,
+  isInterviewerSpeaking: boolean,
+): LiveVisualState {
+  if (state === "connecting" || state === "requesting_microphone") {
+    return "connecting";
+  }
+
+  if (state === "ending") {
+    return "processing";
+  }
+
+  if (state === "near_limit" || state === "awaiting_continuation_consent") {
+    return "approaching";
+  }
+
+  if (isInterviewerSpeaking || !isMicrophoneEnabled) {
+    return "speaking";
+  }
+
+  return "listening";
+}
+
+export function liveDescription(
+  state: LiveState,
+  hardCapSeconds: number,
+  isInterviewerSpeaking = false,
+): string {
   if (state === "connecting" || state === "requesting_microphone") {
     return "This usually takes just a moment.";
   }
@@ -641,6 +687,10 @@ function liveDescription(state: LiveState, hardCapSeconds: number): string {
 
   if (state === "ending") {
     return "Saving the session state before closing the voice connection.";
+  }
+
+  if (isInterviewerSpeaking) {
+    return "The interviewer is speaking. Your microphone will open automatically when it is your turn.";
   }
 
   return "Speak naturally. The interviewer may pause briefly before asking the next question.";
@@ -727,7 +777,7 @@ function MicMeter({ active }: { active: boolean }) {
 function LiveStatusVisual({
   state,
 }: {
-  state: "connecting" | "listening" | "processing" | "approaching";
+  state: LiveVisualState;
 }) {
   if (state === "processing") {
     return (
@@ -748,7 +798,52 @@ function LiveStatusVisual({
   );
 }
 
-function MicStatus({ isEnabled }: { isEnabled: boolean }) {
+function PresenceCue({
+  isListening,
+  isInterviewerSpeaking,
+}: {
+  isListening: boolean;
+  isInterviewerSpeaking: boolean;
+}) {
+  const label = isListening
+    ? "The interviewer is listening."
+    : isInterviewerSpeaking
+      ? "The interviewer is speaking."
+      : "Waiting for the next turn.";
+
+  return (
+    <div className="lp-presence-cue" role="status" aria-live="polite">
+      <span
+        className={
+          isListening
+            ? "lp-presence-dot lp-presence-dot-active"
+            : "lp-presence-dot"
+        }
+        aria-hidden="true"
+      />
+      <span>{label}</span>
+    </div>
+  );
+}
+
+function MicStatus({
+  isEnabled,
+  isInterviewerSpeaking,
+}: {
+  isEnabled: boolean;
+  isInterviewerSpeaking: boolean;
+}) {
+  const statusText = isEnabled
+    ? "Mic on"
+    : isInterviewerSpeaking
+      ? "Interviewer speaking"
+      : "Mic muted";
+  const helperText = isEnabled
+    ? "You can speak naturally now."
+    : isInterviewerSpeaking
+      ? "Your mic is paused so the interviewer can finish."
+      : "This is automatic based on whose turn it is to speak.";
+
   return (
     <div
       className={
@@ -759,7 +854,9 @@ function MicStatus({ isEnabled }: { isEnabled: boolean }) {
       aria-label={
         isEnabled
           ? "Microphone on. You can speak now."
-          : "Microphone muted automatically."
+          : isInterviewerSpeaking
+            ? "Interviewer speaking. Microphone paused automatically."
+            : "Microphone muted automatically."
       }
     >
       <span className="lp-mic-icon" aria-hidden="true">
@@ -768,10 +865,8 @@ function MicStatus({ isEnabled }: { isEnabled: boolean }) {
         <span className="lp-mic-base" />
       </span>
       <span className="lp-mic-status-copy">
-        <strong>{isEnabled ? "Mic on" : "Mic muted"}</strong>
-        <span>
-          This is automatic based on whose turn it is to speak.
-        </span>
+        <strong>{statusText}</strong>
+        <span>{helperText}</span>
       </span>
     </div>
   );

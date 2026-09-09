@@ -223,14 +223,20 @@ describe("Wave 3 route and runtime boundaries", () => {
     const styles = readWorkspaceFile("app", "globals.css");
 
     expect(client).toContain("isMicrophoneEnabled");
-    expect(client).toContain("<MicStatus isEnabled={isMicrophoneEnabled} />");
+    expect(client).toContain("isInterviewerSpeaking");
+    expect(client).toContain("<MicStatus");
+    expect(client).toContain("isEnabled={isMicrophoneEnabled}");
+    expect(client).toContain("isInterviewerSpeaking={isInterviewerSpeaking}");
     expect(client).toContain("Mic on");
     expect(client).toContain("Mic muted");
+    expect(client).toContain("Interviewer speaking");
     expect(client).toContain("This is automatic based on whose turn it is to speak.");
     expect(client).toContain("Microphone on. You can speak now.");
     expect(client).toContain("Microphone muted automatically.");
+    expect(client).toContain("The interviewer is listening.");
     expect(styles).toContain(".lp-mic-status-on");
     expect(styles).toContain(".lp-mic-status-muted");
+    expect(styles).toContain(".lp-presence-cue");
     expect(styles).toContain("border-color: #2f8f5b");
     expect(styles).toContain("border-color: #d34d4d");
   });

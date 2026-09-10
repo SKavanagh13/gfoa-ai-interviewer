@@ -5,6 +5,7 @@ import {
   RealtimeCallCreationError,
   type RealtimeCallResult,
 } from "@/lib/openai/realtime";
+import { getServerEnv } from "@/lib/env";
 import { createAuthorizedParticipantRepository } from "@/lib/interview/route-auth";
 import { dispatchSidebandWorker } from "@/lib/interview/sideband-dispatcher";
 
@@ -34,6 +35,19 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json(
       { error: "Consented interview was not found" },
       { status: 404 },
+    );
+  }
+
+  const capacity = await readLiveInterviewCapacity(repository);
+
+  if (capacity.atCapacity) {
+    return NextResponse.json(
+      {
+        error: "Live interview capacity reached",
+        reason: "live_interview_capacity_reached",
+        maxActiveInterviews: capacity.maxActiveInterviews,
+      },
+      { status: 503 },
     );
   }
 
@@ -91,6 +105,7 @@ export async function POST(request: Request, context: RouteContext) {
 type RealtimeStartFailureReason =
   | "openai_realtime_call_failed"
   | "openai_realtime_call_missing_id"
+  | "live_interview_capacity_reached"
   | "sideband_dispatch_failed"
   | "realtime_session_failed";
 
@@ -116,4 +131,24 @@ function realtimeStartFailureReason(error: unknown): RealtimeStartFailureReason 
   }
 
   return "realtime_session_failed";
+}
+
+async function readLiveInterviewCapacity(repository: {
+  countActiveLiveInterviews: () => Promise<number>;
+}): Promise<
+  | { atCapacity: false; maxActiveInterviews: number }
+  | { atCapacity: true; maxActiveInterviews: number }
+> {
+  const maxActiveInterviews = Number(getServerEnv().MAX_ACTIVE_INTERVIEWS);
+
+  if (maxActiveInterviews === 0) {
+    return { atCapacity: false, maxActiveInterviews };
+  }
+
+  const activeInterviews = await repository.countActiveLiveInterviews();
+
+  return {
+    atCapacity: activeInterviews >= maxActiveInterviews,
+    maxActiveInterviews,
+  };
 }

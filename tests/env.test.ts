@@ -12,6 +12,7 @@ const validServerEnv = {
   OPENAI_API_KEY: "openai-key",
   OPENAI_REALTIME_MODEL: "gpt-realtime",
   OPENAI_ANALYSIS_MODEL: "gpt-4o-mini",
+  MAX_ACTIVE_INTERVIEWS: "25",
   REALTIME_SESSION_TARGET_SECONDS: "900",
   REALTIME_SESSION_HARD_CAP_SECONDS: "1200",
   SIDEBAND_CONNECTION_TIMEOUT_MS: "10000",
@@ -40,6 +41,24 @@ describe("validateClientEnv", () => {
 describe("validateServerEnv", () => {
   it("returns validated server env values", () => {
     expect(validateServerEnv(validServerEnv)).toEqual(validServerEnv);
+  });
+
+  it("defaults active interview capacity to unlimited when unset", () => {
+    expect(
+      validateServerEnv({
+        ...validServerEnv,
+        MAX_ACTIVE_INTERVIEWS: undefined,
+      }).MAX_ACTIVE_INTERVIEWS,
+    ).toBe("0");
+  });
+
+  it("requires configured active interview capacity to be nonnegative", () => {
+    expect(() =>
+      validateServerEnv({
+        ...validServerEnv,
+        MAX_ACTIVE_INTERVIEWS: "-1",
+      }),
+    ).toThrow("MAX_ACTIVE_INTERVIEWS");
   });
 
   it("reports missing required values", () => {

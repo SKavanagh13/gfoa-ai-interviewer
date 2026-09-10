@@ -98,6 +98,21 @@ export class InterviewSessionRepository {
     };
   }
 
+  async countActiveLiveInterviews(): Promise<number> {
+    const { count, error } = await this.supabase
+      .from("interviews")
+      .select("interview_id", { count: "exact", head: true })
+      .is("end_disposition", null)
+      .neq("lifecycle_status", "failed")
+      .or("lifecycle_status.in.(active,ending),realtime_call_id.not.is.null");
+
+    if (error) {
+      throw new Error(`Failed to count active interviews: ${error.message}`);
+    }
+
+    return count ?? 0;
+  }
+
   async persistRealtimeCallId(
     interviewId: string,
     callId: string,

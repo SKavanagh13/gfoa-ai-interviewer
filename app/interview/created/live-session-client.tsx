@@ -34,6 +34,7 @@ type LiveVisualState =
 type RealtimeStartFailureReason =
   | "openai_realtime_call_failed"
   | "openai_realtime_call_missing_id"
+  | "live_interview_capacity_reached"
   | "sideband_dispatch_failed"
   | "realtime_session_failed";
 
@@ -729,6 +730,10 @@ function realtimeStartFailureMessage(failure: {
   openaiStatus: number | null;
   openaiCode: string | null;
 }): string {
+  if (failure.reason === "live_interview_capacity_reached") {
+    return "The interview room is currently full. Please wait a few minutes, then try again.";
+  }
+
   if (failure.reason === "sideband_dispatch_failed") {
     return "The voice session was created, but the server capture worker could not be reached or did not authorize the request.";
   }

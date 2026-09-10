@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  drainPendingAnalysisQueueWithDependencies,
+  enqueuePostInterviewAnalysisWithDependencies,
+  processPendingAnalysisRunWithDependencies,
   runPostInterviewAnalysisWithDependencies,
   type PostInterviewAnalysisRunnerDependencies,
 } from "@/lib/analysis/runner";
@@ -94,10 +97,17 @@ function createDependencies(
       analysisId: string;
       estimatedAnalysisCostUsd: number | null;
     }>,
+    loadPendingAnalysisRuns: [] as number[],
+    loadPendingAnalysisRun: [] as string[],
+    loadPendingAnalysisRunForInterview: [] as string[],
     eligibilityRequests: 0,
     analysisRequests: 0,
   };
   let runCount = 0;
+  const pendingRuns = new Map<
+    string,
+    { analysisId: string; interviewId: string; analysisModel: string | null }
+  >();
 
   const dependencies: PostInterviewAnalysisRunnerDependencies = {
     analysisModel: "gpt-4o-mini",
@@ -126,9 +136,32 @@ function createDependencies(
       async createPendingAnalysisRun(input) {
         calls.createPendingAnalysisRun.push(input);
         runCount += 1;
-        return `analysis-${runCount}`;
+        const analysisId = `analysis-${runCount}`;
+        pendingRuns.set(analysisId, {
+          analysisId,
+          interviewId: input.interviewId,
+          analysisModel: input.analysisModel,
+        });
+        return analysisId;
+      },
+      async loadPendingAnalysisRuns(limit) {
+        calls.loadPendingAnalysisRuns.push(limit);
+        return Array.from(pendingRuns.values()).slice(0, limit);
+      },
+      async loadPendingAnalysisRun(analysisId) {
+        calls.loadPendingAnalysisRun.push(analysisId);
+        return pendingRuns.get(analysisId) ?? null;
+      },
+      async loadPendingAnalysisRunForInterview(interviewId) {
+        calls.loadPendingAnalysisRunForInterview.push(interviewId);
+        return (
+          Array.from(pendingRuns.values()).find(
+            (run) => run.interviewId === interviewId,
+          ) ?? null
+        );
       },
       async markAnalysisRunFailed(analysisId, values) {
+        pendingRuns.delete(analysisId);
         calls.markAnalysisRunFailed.push({
           analysisId,
           errorMessage: values.errorMessage,
@@ -136,6 +169,7 @@ function createDependencies(
         });
       },
       async persistSucceededAnalysis(input) {
+        pendingRuns.delete(input.analysisId);
         calls.persistSucceededAnalysis.push({
           analysisId: input.analysisId,
           estimatedAnalysisCostUsd: input.estimatedAnalysisCostUsd,
@@ -255,6 +289,144 @@ describe("Wave 5 analysis runner", () => {
       { interviewId: "interview-1", analysisModel: "gpt-4o-mini" },
     ]);
     expect(base.calls.persistSucceededAnalysis).toHaveLength(1);
+  });
+
+  it("queues stable interviews without model calls", async () => {
+    const base = createDependencies();
+
+    await expect(
+      enqueuePostInterviewAnalysisWithDependencies(
+        "interview-1",
+        base.dependencies,
+      ),
+    ).resolves.toEqual({ status: "queued", analysisId: "analysis-1" });
+
+    expect(base.calls.createPendingAnalysisRun).toEqual([
+      { interviewId: "interview-1", analysisModel: "gpt-4o-mini" },
+    ]);
+    expect(base.calls.eligibilityRequests).toBe(0);
+    expect(base.calls.analysisRequests).toBe(0);
+  });
+
+  it("reuses an existing pending run when queueing an interview twice", async () => {
+    const base = createDependencies();
+
+    await enqueuePostInterviewAnalysisWithDependencies(
+      "interview-1",
+      base.dependencies,
+    );
+    await expect(
+      enqueuePostInterviewAnalysisWithDependencies(
+        "interview-1",
+        base.dependencies,
+      ),
+    ).resolves.toEqual({ status: "queued", analysisId: "analysis-1" });
+
+    expect(base.calls.createPendingAnalysisRun).toHaveLength(1);
+    expect(base.calls.loadPendingAnalysisRunForInterview).toEqual([
+      "interview-1",
+      "interview-1",
+    ]);
+  });
+
+  it("does not queue unstable interviews", async () => {
+    const base = createDependencies();
+    const dependencies: PostInterviewAnalysisRunnerDependencies = {
+      ...base.dependencies,
+      repository: {
+        ...base.dependencies.repository,
+        async loadInterviewForAnalysis() {
+          return {
+            interviewId: "interview-1",
+            transcriptStatus: "stabilizing",
+            participantContext: {},
+          };
+        },
+      },
+    };
+
+    await expect(
+      enqueuePostInterviewAnalysisWithDependencies(
+        "interview-1",
+        dependencies,
+      ),
+    ).resolves.toMatchObject({ status: "failed" });
+    expect(base.calls.createPendingAnalysisRun).toHaveLength(0);
+  });
+
+  it("processes an existing pending analysis run", async () => {
+    const base = createDependencies();
+    await enqueuePostInterviewAnalysisWithDependencies(
+      "interview-1",
+      base.dependencies,
+    );
+
+    await expect(
+      processPendingAnalysisRunWithDependencies("analysis-1", base.dependencies),
+    ).resolves.toEqual({ status: "succeeded", analysisId: "analysis-1" });
+
+    expect(base.calls.loadPendingAnalysisRun).toEqual(["analysis-1"]);
+    expect(base.calls.createPendingAnalysisRun).toHaveLength(1);
+    expect(base.calls.persistSucceededAnalysis).toHaveLength(1);
+  });
+
+  it("marks a queued run failed when eligibility is insufficient", async () => {
+    const base = createDependencies();
+    const dependencies: PostInterviewAnalysisRunnerDependencies = {
+      ...base.dependencies,
+      repository: {
+        ...base.dependencies.repository,
+        async loadCanonicalTranscriptSegments() {
+          return [participantSegment("too short")];
+        },
+      },
+    };
+    await enqueuePostInterviewAnalysisWithDependencies(
+      "interview-1",
+      dependencies,
+    );
+
+    await expect(
+      processPendingAnalysisRunWithDependencies("analysis-1", dependencies),
+    ).resolves.toMatchObject({ status: "ineligible" });
+
+    expect(base.calls.markAnalysisRunFailed).toEqual([
+      {
+        analysisId: "analysis-1",
+        errorMessage:
+          "Interview is not eligible for analysis: Fewer than 40 finalized participant-spoken words.",
+        estimatedAnalysisCostUsd: undefined,
+      },
+    ]);
+    expect(base.calls.analysisRequests).toBe(0);
+  });
+
+  it("drains pending analysis runs in a bounded batch", async () => {
+    const base = createDependencies();
+    await enqueuePostInterviewAnalysisWithDependencies(
+      "interview-1",
+      base.dependencies,
+    );
+    await enqueuePostInterviewAnalysisWithDependencies(
+      "interview-2",
+      base.dependencies,
+    );
+
+    const result = await drainPendingAnalysisQueueWithDependencies(
+      { limit: 1 },
+      base.dependencies,
+    );
+
+    expect(result).toMatchObject({
+      processed: 1,
+      succeeded: 1,
+      failed: 0,
+      ineligible: 0,
+    });
+    expect(base.calls.loadPendingAnalysisRuns).toEqual([1]);
+    expect(base.calls.persistSucceededAnalysis.map((call) => call.analysisId)).toEqual([
+      "analysis-1",
+    ]);
   });
 
   it("persists analysis estimated cost from response usage", async () => {

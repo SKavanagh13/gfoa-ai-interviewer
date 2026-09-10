@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireStaffOrAdmin } from "@/lib/admin/auth";
 import { AdminRepository } from "@/lib/admin/repository";
-import { runPostInterviewAnalysis } from "@/lib/analysis/runner";
+import { enqueuePostInterviewAnalysis } from "@/lib/analysis/runner";
 import { createAuthenticatedSupabaseClient } from "@/lib/supabase/auth-server";
 import { createServiceRoleSupabaseClient } from "@/lib/supabase/server";
 
@@ -51,7 +51,7 @@ export async function rerunAnalysis(formData: FormData) {
     throw new Error("Interview is not accessible to this reviewer.");
   }
 
-  const result = await runPostInterviewAnalysis(interviewId);
+  const result = await enqueuePostInterviewAnalysis(interviewId);
 
   revalidatePath("/admin");
   revalidatePath(`/admin/interviews/${interviewId}`);

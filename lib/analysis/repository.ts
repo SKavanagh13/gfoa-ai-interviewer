@@ -22,6 +22,12 @@ export type AnalysisRunInsert = {
   analysisModel: string;
 };
 
+export type PendingAnalysisRunRecord = {
+  analysisId: string;
+  interviewId: string;
+  analysisModel: string | null;
+};
+
 export class AnalysisRepository {
   constructor(private readonly supabase: SupabaseClient<Database>) {}
 
@@ -130,6 +136,81 @@ export class AnalysisRepository {
     }
 
     return data.analysis_id;
+  }
+
+  async loadPendingAnalysisRuns(
+    limit: number,
+  ): Promise<PendingAnalysisRunRecord[]> {
+    const { data, error } = await this.supabase
+      .from("analysis_runs")
+      .select("analysis_id, interview_id, analysis_model")
+      .eq("status", "pending")
+      .order("created_at", { ascending: true })
+      .limit(limit);
+
+    if (error) {
+      throw new Error(`Failed to load pending analysis runs: ${error.message}`);
+    }
+
+    return data.map((run) => ({
+      analysisId: run.analysis_id,
+      interviewId: run.interview_id,
+      analysisModel: run.analysis_model,
+    }));
+  }
+
+  async loadPendingAnalysisRun(
+    analysisId: string,
+  ): Promise<PendingAnalysisRunRecord | null> {
+    const { data, error } = await this.supabase
+      .from("analysis_runs")
+      .select("analysis_id, interview_id, analysis_model")
+      .eq("analysis_id", analysisId)
+      .eq("status", "pending")
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(`Failed to load pending analysis run: ${error.message}`);
+    }
+
+    if (!data) {
+      return null;
+    }
+
+    return {
+      analysisId: data.analysis_id,
+      interviewId: data.interview_id,
+      analysisModel: data.analysis_model,
+    };
+  }
+
+  async loadPendingAnalysisRunForInterview(
+    interviewId: string,
+  ): Promise<PendingAnalysisRunRecord | null> {
+    const { data, error } = await this.supabase
+      .from("analysis_runs")
+      .select("analysis_id, interview_id, analysis_model")
+      .eq("interview_id", interviewId)
+      .eq("status", "pending")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(
+        `Failed to load queued analysis run for interview: ${error.message}`,
+      );
+    }
+
+    if (!data) {
+      return null;
+    }
+
+    return {
+      analysisId: data.analysis_id,
+      interviewId: data.interview_id,
+      analysisModel: data.analysis_model,
+    };
   }
 
   async markAnalysisRunFailed(

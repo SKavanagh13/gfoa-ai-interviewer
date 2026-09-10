@@ -6,7 +6,7 @@ const revalidatePath = vi.fn();
 const requireStaffOrAdmin = vi.fn();
 const verifyInterviewAccessible = vi.fn();
 const serviceRpc = vi.fn();
-const runPostInterviewAnalysis = vi.fn();
+const enqueuePostInterviewAnalysis = vi.fn();
 
 vi.mock("next/cache", () => ({ revalidatePath }));
 vi.mock("@/lib/admin/auth", () => ({ requireStaffOrAdmin }));
@@ -16,7 +16,7 @@ vi.mock("@/lib/supabase/auth-server", () => ({
 vi.mock("@/lib/supabase/server", () => ({
   createServiceRoleSupabaseClient: vi.fn(() => ({ rpc: serviceRpc })),
 }));
-vi.mock("@/lib/analysis/runner", () => ({ runPostInterviewAnalysis }));
+vi.mock("@/lib/analysis/runner", () => ({ enqueuePostInterviewAnalysis }));
 vi.mock("@/lib/admin/repository", () => ({
   AdminRepository: vi.fn().mockImplementation(() => ({
     verifyInterviewAccessible,
@@ -37,8 +37,8 @@ describe("Wave 6 admin actions", () => {
     requireStaffOrAdmin.mockResolvedValue({ userId: "user-1", role: "staff" });
     verifyInterviewAccessible.mockResolvedValue(true);
     serviceRpc.mockResolvedValue({ error: null });
-    runPostInterviewAnalysis.mockResolvedValue({
-      status: "succeeded",
+    enqueuePostInterviewAnalysis.mockResolvedValue({
+      status: "queued",
       analysisId: "analysis-1",
     });
   });
@@ -72,14 +72,14 @@ describe("Wave 6 admin actions", () => {
     expect(serviceRpc).not.toHaveBeenCalled();
   });
 
-  it("checks authorization and RLS visibility before invoking the rerun entry point", async () => {
+  it("checks authorization and RLS visibility before enqueueing a rerun", async () => {
     const { rerunAnalysis } = await import("@/app/admin/actions");
 
     await rerunAnalysis(formData({ interviewId }));
 
     expect(requireStaffOrAdmin).toHaveBeenCalledOnce();
     expect(verifyInterviewAccessible).toHaveBeenCalledWith(interviewId);
-    expect(runPostInterviewAnalysis).toHaveBeenCalledWith(interviewId);
+    expect(enqueuePostInterviewAnalysis).toHaveBeenCalledWith(interviewId);
   });
 
   it("rejects unauthenticated callers before rerun", async () => {
@@ -90,6 +90,6 @@ describe("Wave 6 admin actions", () => {
       "redirect:/admin/login",
     );
 
-    expect(runPostInterviewAnalysis).not.toHaveBeenCalled();
+    expect(enqueuePostInterviewAnalysis).not.toHaveBeenCalled();
   });
 });

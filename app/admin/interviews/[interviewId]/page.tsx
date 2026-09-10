@@ -213,7 +213,7 @@ export default async function AdminInterviewPage({
           <form action={rerunAnalysis}>
             <input name="interviewId" type="hidden" value={detail.interviewId} />
             <button className="secondary-button" type="submit">
-              Rerun Analysis
+              Queue Analysis Rerun
             </button>
           </form>
         </div>

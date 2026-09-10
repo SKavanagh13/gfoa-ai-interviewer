@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   liveDescription,
+  realtimeStartFailureMessage,
   liveVisualState,
 } from "@/app/interview/created/live-session-client";
 
@@ -21,6 +22,20 @@ describe("Live session participant cues", () => {
   it("explains interviewer speech without changing turn-taking behavior", () => {
     expect(liveDescription("connected", 1200, true)).toContain(
       "Your microphone will open automatically",
+    );
+  });
+
+  it("shows configured live capacity and current use when the interview room is full", () => {
+    expect(
+      realtimeStartFailureMessage({
+        reason: "live_interview_capacity_reached",
+        activeInterviewCount: 20,
+        maxActiveInterviews: 20,
+        openaiStatus: null,
+        openaiCode: null,
+      }),
+    ).toBe(
+      "We can support 20 AI interviews at one time, and all 20 interviewers are currently in use. Please try again in a few minutes.",
     );
   });
 });

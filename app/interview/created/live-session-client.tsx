@@ -700,24 +700,38 @@ export function liveDescription(
 async function readRealtimeStartFailure(
   response: Response,
 ): Promise<{
+  activeInterviewCount: number | null;
+  maxActiveInterviews: number | null;
   reason: RealtimeStartFailureReason;
   openaiStatus: number | null;
   openaiCode: string | null;
 }> {
   try {
     const body = (await response.json()) as {
+      activeInterviewCount?: number | null;
+      maxActiveInterviews?: number | null;
       reason?: RealtimeStartFailureReason;
       openaiStatus?: number | null;
       openaiCode?: string | null;
     };
 
     return {
+      activeInterviewCount:
+        typeof body.activeInterviewCount === "number"
+          ? body.activeInterviewCount
+          : null,
+      maxActiveInterviews:
+        typeof body.maxActiveInterviews === "number"
+          ? body.maxActiveInterviews
+          : null,
       reason: body.reason ?? "realtime_session_failed",
       openaiStatus: body.openaiStatus ?? null,
       openaiCode: body.openaiCode ?? null,
     };
   } catch {
     return {
+      activeInterviewCount: null,
+      maxActiveInterviews: null,
       reason: "realtime_session_failed",
       openaiStatus: null,
       openaiCode: null,
@@ -725,13 +739,22 @@ async function readRealtimeStartFailure(
   }
 }
 
-function realtimeStartFailureMessage(failure: {
+export function realtimeStartFailureMessage(failure: {
+  activeInterviewCount?: number | null;
+  maxActiveInterviews?: number | null;
   reason: RealtimeStartFailureReason;
   openaiStatus: number | null;
   openaiCode: string | null;
 }): string {
   if (failure.reason === "live_interview_capacity_reached") {
-    return "The interview room is currently full. Please wait a few minutes, then try again.";
+    if (
+      typeof failure.maxActiveInterviews === "number" &&
+      typeof failure.activeInterviewCount === "number"
+    ) {
+      return `We can support ${failure.maxActiveInterviews} AI interviews at one time, and all ${failure.activeInterviewCount} interviewers are currently in use. Please try again in a few minutes.`;
+    }
+
+    return "All AI interviewers are currently in use. Please try again in a few minutes.";
   }
 
   if (failure.reason === "sideband_dispatch_failed") {

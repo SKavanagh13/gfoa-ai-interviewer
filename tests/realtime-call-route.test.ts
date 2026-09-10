@@ -65,6 +65,7 @@ describe("Realtime call route capacity guard", () => {
     await expect(response.json()).resolves.toMatchObject({
       error: "Live interview capacity reached",
       reason: "live_interview_capacity_reached",
+      activeInterviewCount: 1,
       maxActiveInterviews: 1,
     });
     expect(repository.countActiveLiveInterviews).toHaveBeenCalled();

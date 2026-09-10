@@ -45,6 +45,7 @@ export async function POST(request: Request, context: RouteContext) {
       {
         error: "Live interview capacity reached",
         reason: "live_interview_capacity_reached",
+        activeInterviewCount: capacity.activeInterviewCount,
         maxActiveInterviews: capacity.maxActiveInterviews,
       },
       { status: 503 },
@@ -136,18 +137,31 @@ function realtimeStartFailureReason(error: unknown): RealtimeStartFailureReason 
 async function readLiveInterviewCapacity(repository: {
   countActiveLiveInterviews: () => Promise<number>;
 }): Promise<
-  | { atCapacity: false; maxActiveInterviews: number }
-  | { atCapacity: true; maxActiveInterviews: number }
+  | {
+      activeInterviewCount: number | null;
+      atCapacity: false;
+      maxActiveInterviews: number;
+    }
+  | {
+      activeInterviewCount: number;
+      atCapacity: true;
+      maxActiveInterviews: number;
+    }
 > {
   const maxActiveInterviews = Number(getServerEnv().MAX_ACTIVE_INTERVIEWS);
 
   if (maxActiveInterviews === 0) {
-    return { atCapacity: false, maxActiveInterviews };
+    return {
+      activeInterviewCount: null,
+      atCapacity: false,
+      maxActiveInterviews,
+    };
   }
 
   const activeInterviews = await repository.countActiveLiveInterviews();
 
   return {
+    activeInterviewCount: activeInterviews,
     atCapacity: activeInterviews >= maxActiveInterviews,
     maxActiveInterviews,
   };

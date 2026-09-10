@@ -17,6 +17,7 @@ worker runtime before running a pilot.
 | `OPENAI_API_KEY` | Secret server | Next.js app, sideband worker | Use the OpenAI project configured for the MVP pilot. |
 | `OPENAI_REALTIME_MODEL` | Server config | Next.js app, sideband worker | Realtime voice model used by the live interviewer. |
 | `OPENAI_ANALYSIS_MODEL` | Server config | Next.js app | Separate model used for post-interview analysis. |
+| `MAX_ACTIVE_INTERVIEWS` | Server config | Next.js app | Optional admission cap for live Realtime starts. Unset or `0` disables the cap; use a positive integer before broad invite waves. |
 | `REALTIME_SESSION_TARGET_SECONDS` | Server config | Next.js app, sideband worker | Set to `900` for the 15-minute target. |
 | `REALTIME_SESSION_HARD_CAP_SECONDS` | Server config | Next.js app, sideband worker | Set to `1200`; validation rejects values above 20 minutes. |
 | `SIDEBAND_CONNECTION_TIMEOUT_MS` | Server config | Next.js app, sideband worker | Startup/connectivity timeout for sideband readiness. |

@@ -49,6 +49,7 @@ const server = http.createServer((request, response) => {
         createServiceRoleSupabaseRuntimeClient(),
         env.PARTICIPANT_SESSION_TOKEN_SECRET,
         env.OPENAI_REALTIME_MODEL,
+        { analysisModel: env.OPENAI_ANALYSIS_MODEL },
       );
 
       void runSidebandController({

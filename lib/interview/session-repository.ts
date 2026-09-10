@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, TablesInsert } from "@/types/database.types";
+import { AnalysisRepository } from "@/lib/analysis/repository";
 import { validateTranscriptForCanonicalUse } from "@/lib/transcript/canonical";
 import type { CanonicalTranscriptSegment } from "@/lib/transcript/types";
 import {
@@ -30,12 +31,21 @@ export type FinalTranscriptSegment = {
   endTimeMs?: number | null;
 };
 
+export type InterviewSessionRepositoryOptions = {
+  analysisModel?: string;
+};
+
 export class InterviewSessionRepository {
+  private readonly analysisRepository: AnalysisRepository;
+
   constructor(
     private readonly supabase: SupabaseClient<Database>,
     private readonly tokenSecret: string,
     private readonly realtimeModel: string,
-  ) {}
+    private readonly options: InterviewSessionRepositoryOptions = {},
+  ) {
+    this.analysisRepository = new AnalysisRepository(supabase);
+  }
 
   async validateParticipantSession(
     interviewId: string,
@@ -263,6 +273,8 @@ export class InterviewSessionRepository {
       transcript_stabilized_at: new Date().toISOString(),
       transcript_reconciliation_timeout_ms: timeoutMs,
     });
+
+    await this.tryEnqueueAnalysisRun(interviewId);
   }
 
   async markTranscriptFailed(
@@ -409,6 +421,33 @@ export class InterviewSessionRepository {
 
     if (error) {
       throw new Error(`Failed to update interview: ${error.message}`);
+    }
+  }
+
+  private async tryEnqueueAnalysisRun(interviewId: string): Promise<void> {
+    if (!this.options.analysisModel) {
+      return;
+    }
+
+    try {
+      const existing =
+        await this.analysisRepository.loadPendingAnalysisRunForInterview(
+          interviewId,
+        );
+
+      if (existing) {
+        return;
+      }
+
+      await this.analysisRepository.createPendingAnalysisRun({
+        interviewId,
+        analysisModel: this.options.analysisModel,
+      });
+    } catch (error) {
+      console.error("Failed to auto-queue analysis run", {
+        interviewId,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 }

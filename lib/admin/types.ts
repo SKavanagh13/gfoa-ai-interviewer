@@ -1,9 +1,34 @@
 import type { Database, Json } from "@/types/database.types";
 
 export type AnalysisRunStatus = Database["public"]["Enums"]["analysis_run_status"];
+export type AnalysisEligibility =
+  Database["public"]["Enums"]["analysis_eligibility"];
+export type EndDisposition = Database["public"]["Enums"]["end_disposition"];
+export type InterviewLifecycleStatus =
+  Database["public"]["Enums"]["interview_lifecycle_status"];
 export type Objective = Database["public"]["Enums"]["objective"];
 export type QuoteVerificationStatus =
   Database["public"]["Enums"]["quote_verification_status"];
+export type TranscriptStatus = Database["public"]["Enums"]["transcript_status"];
+
+export type AdminLatestAnalysisFilter = AnalysisRunStatus | "missing";
+
+export type AdminInterviewListFilters = {
+  analysisEligibility: AnalysisEligibility | "missing" | null;
+  endDisposition: EndDisposition | "missing" | null;
+  latestAnalysisStatus: AdminLatestAnalysisFilter | null;
+  lifecycleStatus: InterviewLifecycleStatus | null;
+  transcriptStatus: TranscriptStatus | null;
+};
+
+export type AdminInterviewListResult = {
+  filters: AdminInterviewListFilters;
+  items: AdminInterviewListItem[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+};
 
 export type AdminParticipantContext = {
   participantId: string;

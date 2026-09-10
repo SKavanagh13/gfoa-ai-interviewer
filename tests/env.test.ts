@@ -12,6 +12,7 @@ const validServerEnv = {
   OPENAI_API_KEY: "openai-key",
   OPENAI_REALTIME_MODEL: "gpt-realtime",
   OPENAI_ANALYSIS_MODEL: "gpt-4o-mini",
+  ANALYSIS_WORKER_BATCH_SIZE: "5",
   MAX_ACTIVE_INTERVIEWS: "25",
   REALTIME_SESSION_TARGET_SECONDS: "900",
   REALTIME_SESSION_HARD_CAP_SECONDS: "1200",
@@ -50,6 +51,24 @@ describe("validateServerEnv", () => {
         MAX_ACTIVE_INTERVIEWS: undefined,
       }).MAX_ACTIVE_INTERVIEWS,
     ).toBe("0");
+  });
+
+  it("defaults analysis worker batch size when unset", () => {
+    expect(
+      validateServerEnv({
+        ...validServerEnv,
+        ANALYSIS_WORKER_BATCH_SIZE: undefined,
+      }).ANALYSIS_WORKER_BATCH_SIZE,
+    ).toBe("5");
+  });
+
+  it("requires analysis worker batch size to be positive", () => {
+    expect(() =>
+      validateServerEnv({
+        ...validServerEnv,
+        ANALYSIS_WORKER_BATCH_SIZE: "0",
+      }),
+    ).toThrow("ANALYSIS_WORKER_BATCH_SIZE");
   });
 
   it("requires configured active interview capacity to be nonnegative", () => {

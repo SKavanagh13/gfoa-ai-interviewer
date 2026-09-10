@@ -5,6 +5,7 @@ export type ServerEnv = {
   OPENAI_API_KEY: string;
   OPENAI_REALTIME_MODEL: string;
   OPENAI_ANALYSIS_MODEL: string;
+  ANALYSIS_WORKER_BATCH_SIZE: string;
   MAX_ACTIVE_INTERVIEWS: string;
   REALTIME_SESSION_TARGET_SECONDS: string;
   REALTIME_SESSION_HARD_CAP_SECONDS: string;
@@ -34,6 +35,7 @@ export const REQUIRED_SERVER_ENV_KEYS = [
 type ServerEnvKey = (typeof REQUIRED_SERVER_ENV_KEYS)[number];
 
 type EnvSource = Record<ServerEnvKey, EnvValue> & {
+  ANALYSIS_WORKER_BATCH_SIZE?: EnvValue;
   MAX_ACTIVE_INTERVIEWS?: EnvValue;
 };
 
@@ -68,6 +70,10 @@ export function validateServerEnv(source: EnvSource): ServerEnv {
     source.MAX_ACTIVE_INTERVIEWS ?? "0",
     "MAX_ACTIVE_INTERVIEWS",
   );
+  const analysisWorkerBatchSize = parsePositiveInteger(
+    source.ANALYSIS_WORKER_BATCH_SIZE ?? "5",
+    "ANALYSIS_WORKER_BATCH_SIZE",
+  );
 
   if (hardCapSeconds <= targetSeconds) {
     throw new Error(
@@ -94,6 +100,7 @@ export function validateServerEnv(source: EnvSource): ServerEnv {
     OPENAI_API_KEY: env.OPENAI_API_KEY,
     OPENAI_REALTIME_MODEL: env.OPENAI_REALTIME_MODEL,
     OPENAI_ANALYSIS_MODEL: env.OPENAI_ANALYSIS_MODEL,
+    ANALYSIS_WORKER_BATCH_SIZE: String(analysisWorkerBatchSize),
     MAX_ACTIVE_INTERVIEWS: String(maxActiveInterviews),
     REALTIME_SESSION_TARGET_SECONDS: String(targetSeconds),
     REALTIME_SESSION_HARD_CAP_SECONDS: String(hardCapSeconds),
@@ -107,7 +114,7 @@ export function validateServerEnv(source: EnvSource): ServerEnv {
   };
 }
 
-function parsePositiveInteger(value: EnvValue, key: ServerEnvKey): number {
+function parsePositiveInteger(value: EnvValue, key: string): number {
   const numberValue = Number(value);
 
   if (!Number.isInteger(numberValue) || numberValue <= 0) {

@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "analysis:worker": "tsx workers/analysis-worker.ts",
     "sideband:dev": "tsx workers/sideband-worker.ts",
     "sideband:start": "tsx workers/sideband-worker.ts",
     "build": "next build",

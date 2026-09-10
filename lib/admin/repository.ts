@@ -3,10 +3,13 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Tables } from "@/types/database.types";
 import type {
+  AdminInterviewListFilters,
   AdminAnalysisRunDetail,
   AdminAnalysisRunSummary,
   AdminInterviewDetail,
   AdminInterviewListItem,
+  AdminInterviewListResult,
+  AdminLatestAnalysisFilter,
   AdminObjectiveResult,
   AdminParticipantContext,
   AdminParticipantIdentity,
@@ -19,16 +22,56 @@ type InterviewRow = Tables<"interviews">;
 type AnalysisRunRow = Tables<"analysis_runs">;
 type TranscriptSegmentRow = Tables<"transcript_segments">;
 
+export const ADMIN_INTERVIEW_LIST_PAGE_SIZE = 25;
+const MAX_ADMIN_INTERVIEW_LIST_PAGE_SIZE = 100;
+
+export type AdminInterviewListQuery = {
+  filters?: Partial<AdminInterviewListFilters>;
+  page?: number;
+  pageSize?: number;
+};
+
+export type NormalizedAdminInterviewListQuery = {
+  filters: AdminInterviewListFilters;
+  page: number;
+  pageSize: number;
+};
+
 export class AdminRepository {
   constructor(private readonly supabase: Supabase) {}
 
-  async loadInterviewList(): Promise<AdminInterviewListItem[]> {
-    const { data: interviews, error } = await this.supabase
+  async loadInterviewList(
+    input: AdminInterviewListQuery = {},
+  ): Promise<AdminInterviewListResult> {
+    const query = normalizeAdminInterviewListQuery(input);
+    let request = this.supabase
       .from("interviews")
       .select(
         "interview_id,lifecycle_status,end_disposition,analysis_eligibility,transcript_status,negative_reaction_flag,consented_at,started_at,ended_at,created_at",
       )
       .order("created_at", { ascending: false });
+
+    if (query.filters.lifecycleStatus) {
+      request = request.eq("lifecycle_status", query.filters.lifecycleStatus);
+    }
+    if (query.filters.transcriptStatus) {
+      request = request.eq("transcript_status", query.filters.transcriptStatus);
+    }
+    if (query.filters.endDisposition === "missing") {
+      request = request.is("end_disposition", null);
+    } else if (query.filters.endDisposition) {
+      request = request.eq("end_disposition", query.filters.endDisposition);
+    }
+    if (query.filters.analysisEligibility === "missing") {
+      request = request.is("analysis_eligibility", null);
+    } else if (query.filters.analysisEligibility) {
+      request = request.eq(
+        "analysis_eligibility",
+        query.filters.analysisEligibility,
+      );
+    }
+
+    const { data: interviews, error } = await request;
 
     if (error) {
       throw new Error(`Failed to load interviews: ${error.message}`);
@@ -37,7 +80,7 @@ export class AdminRepository {
     const interviewIds = interviews.map((interview) => interview.interview_id);
     const latestRuns = await this.loadLatestRunByInterview(interviewIds);
 
-    return interviews.map((interview) => ({
+    const items = interviews.map((interview) => ({
       interviewId: interview.interview_id,
       lifecycleStatus: interview.lifecycle_status,
       endDisposition: interview.end_disposition,
@@ -53,6 +96,23 @@ export class AdminRepository {
       latestAnalysisCreatedAt:
         latestRuns.get(interview.interview_id)?.created_at ?? null,
     }));
+    const filteredItems = filterByLatestAnalysisStatus(
+      items,
+      query.filters.latestAnalysisStatus,
+    );
+    const totalCount = filteredItems.length;
+    const totalPages = Math.max(Math.ceil(totalCount / query.pageSize), 1);
+    const page = Math.min(query.page, totalPages);
+    const start = (page - 1) * query.pageSize;
+
+    return {
+      filters: query.filters,
+      items: filteredItems.slice(start, start + query.pageSize),
+      page,
+      pageSize: query.pageSize,
+      totalCount,
+      totalPages,
+    };
   }
 
   async loadInterviewDetail(input: {
@@ -404,6 +464,70 @@ export function selectAnalysisRun(
   );
 }
 
+export function normalizeAdminInterviewListQuery(
+  input: AdminInterviewListQuery = {},
+): NormalizedAdminInterviewListQuery {
+  const pageSize = clampInteger(
+    input.pageSize,
+    ADMIN_INTERVIEW_LIST_PAGE_SIZE,
+    1,
+    MAX_ADMIN_INTERVIEW_LIST_PAGE_SIZE,
+  );
+
+  return {
+    filters: {
+      analysisEligibility: enumOrNull(
+        input.filters?.analysisEligibility,
+        ["eligible", "ineligible_insufficient_content", "missing"],
+      ),
+      endDisposition: enumOrNull(input.filters?.endDisposition, [
+        "completed",
+        "participant_ended",
+        "technical_failure",
+        "missing",
+      ]),
+      latestAnalysisStatus: enumOrNull(input.filters?.latestAnalysisStatus, [
+        "pending",
+        "succeeded",
+        "failed",
+        "missing",
+      ]),
+      lifecycleStatus: enumOrNull(input.filters?.lifecycleStatus, [
+        "created",
+        "active",
+        "ending",
+        "ended",
+        "failed",
+      ]),
+      transcriptStatus: enumOrNull(input.filters?.transcriptStatus, [
+        "pending",
+        "stabilizing",
+        "stable",
+        "failed",
+      ]),
+    },
+    page: clampInteger(input.page, 1, 1, Number.MAX_SAFE_INTEGER),
+    pageSize,
+  };
+}
+
+function filterByLatestAnalysisStatus(
+  items: AdminInterviewListItem[],
+  latestAnalysisStatus: AdminLatestAnalysisFilter | null,
+): AdminInterviewListItem[] {
+  if (!latestAnalysisStatus) {
+    return items;
+  }
+
+  if (latestAnalysisStatus === "missing") {
+    return items.filter((item) => item.latestAnalysisStatus === null);
+  }
+
+  return items.filter(
+    (item) => item.latestAnalysisStatus === latestAnalysisStatus,
+  );
+}
+
 function mapInterviewDetail(input: {
   interview: InterviewRow;
   participantContext: AdminParticipantContext | null;
@@ -519,4 +643,28 @@ function groupSegmentsByOwner<T extends { objective_result_id: string; segment_i
 
 function nullableNumeric(value: string | number | null): string | null {
   return value === null ? null : String(value);
+}
+
+function clampInteger(
+  value: number | undefined,
+  fallback: number,
+  min: number,
+  max: number,
+): number {
+  if (typeof value !== "number" || !Number.isInteger(value)) {
+    return fallback;
+  }
+
+  return Math.min(Math.max(value, min), max);
+}
+
+function enumOrNull<T extends string>(
+  value: T | null | undefined,
+  allowedValues: readonly T[],
+): T | null {
+  if (!value) {
+    return null;
+  }
+
+  return allowedValues.includes(value) ? value : null;
 }

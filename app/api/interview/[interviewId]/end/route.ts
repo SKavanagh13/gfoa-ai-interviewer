@@ -18,15 +18,15 @@ export async function POST(_request: Request, context: RouteContext) {
 
   const liveContext = await repository.getLiveInterviewContext(interviewId);
 
+  await repository.markParticipantEnded(interviewId);
+
   if (liveContext?.realtimeCallId) {
     try {
       await hangUpRealtimeCall(liveContext.realtimeCallId);
     } catch {
-      // The local lifecycle still records the participant-ended observable path.
+      // Local lifecycle finalization has already been recorded.
     }
   }
-
-  await repository.markParticipantEnded(interviewId);
 
   return NextResponse.json({ ok: true });
 }

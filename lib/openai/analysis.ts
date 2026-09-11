@@ -1,8 +1,6 @@
-import "server-only";
-
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { getServerEnv } from "@/lib/env";
+import { getServerRuntimeEnv } from "@/lib/server-runtime-env";
 import {
   ELIGIBILITY_PROMPT_VERSION,
   ELIGIBILITY_SCHEMA_VERSION,
@@ -56,7 +54,7 @@ async function requestStructuredOutput({
   systemPrompt: string;
   input: AnalysisModelInput;
 }): Promise<StructuredOutputModelResult> {
-  const env = getServerEnv();
+  const env = getServerRuntimeEnv();
 
   const body = {
     model: env.OPENAI_ANALYSIS_MODEL,

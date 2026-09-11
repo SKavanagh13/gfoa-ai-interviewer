@@ -170,6 +170,7 @@ function buildEligibilityPrompt(): string {
     "You are a narrow post-interview eligibility classifier, separate from the live interviewer.",
     "Decide only whether at least one locked interview objective has partial or sufficient coverage.",
     "Coverage requires direct transcript evidence identifying the participant's central point and at least one meaningful dimension such as why it matters, context, example, reasoning, impact, or tradeoff.",
+    "Use only the UUID-like segment IDs from the left side of the supplied segment map. Do not cite transcript sequence numbers such as 1, 2, or 0002.",
     "Do not summarize the full interview, extract coded fields, propose quotes, infer identities, make recommendations, or classify themes.",
     "Return only the required structured JSON.",
   ].join("\n");

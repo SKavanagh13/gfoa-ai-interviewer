@@ -196,6 +196,35 @@ describe("sideband controller timing signals", () => {
     );
   });
 
+  it("attempts canonical stabilization when sideband closes without the session-end signal", async () => {
+    const repository = {
+      markSidebandConnected: vi.fn(async () => {}),
+      insertFinalTranscriptSegment: vi.fn(async () => {}),
+      recordUsage: vi.fn(async () => {}),
+      markTranscriptStable: vi.fn(async () => {}),
+      markTranscriptFailed: vi.fn(async () => {}),
+      markTechnicalFailure: vi.fn(async () => {}),
+      hasContinuationConsent: vi.fn(async () => true),
+    };
+    const controllerPromise = runSidebandController({
+      interviewId: "interview-1",
+      callId: "rtc_123",
+      repository: repository as never,
+      WebSocketCtor: FakeWebSocket as never,
+    });
+    const ws = FakeWebSocket.instances[0];
+
+    ws.emit("open");
+    ws.close();
+    await controllerPromise;
+
+    expect(repository.markTranscriptStable).toHaveBeenCalledWith(
+      "interview-1",
+      5000,
+    );
+    expect(repository.markTranscriptFailed).not.toHaveBeenCalled();
+  });
+
   it("marks completed from the finalized assistant closing signal", async () => {
     const repository = {
       markSidebandConnected: vi.fn(async () => {}),

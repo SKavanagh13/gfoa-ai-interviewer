@@ -86,6 +86,7 @@ export async function runSidebandController(
   await new Promise<void>((resolve, reject) => {
     let settled = false;
     let intentionalFinalization = false;
+    let lifecycleFinalized = false;
     let startedAtMs: number | null = null;
     let elapsedUpdateTimer: ReturnType<typeof setInterval> | null = null;
     let nearLimitTimer: ReturnType<typeof setTimeout> | null = null;
@@ -169,6 +170,12 @@ export async function runSidebandController(
     }
 
     async function finalizeTranscript() {
+      if (!lifecycleFinalized) {
+        await input.repository.markParticipantEnded(input.interviewId);
+        lifecycleFinalized = true;
+      }
+
+      await input.repository.markSidebandClosed(input.interviewId);
       await input.repository.markTranscriptStable(
         input.interviewId,
         reconciliationTimeoutMs,
@@ -228,6 +235,7 @@ export async function runSidebandController(
       );
       try {
         await input.repository.markParticipantEnded(input.interviewId);
+        lifecycleFinalized = true;
       } catch (error) {
         const message =
           error instanceof Error
@@ -236,6 +244,7 @@ export async function runSidebandController(
         void input.repository
           .markTechnicalFailure(input.interviewId, message)
           .catch(() => undefined);
+        lifecycleFinalized = true;
       } finally {
         void hangUpRealtimeCall(input.callId).finally(() => ws.close());
       }
@@ -250,6 +259,7 @@ export async function runSidebandController(
 
       try {
         await input.repository.markCompleted(input.interviewId);
+        lifecycleFinalized = true;
       } catch (error) {
         const message =
           error instanceof Error
@@ -258,6 +268,7 @@ export async function runSidebandController(
         void input.repository
           .markTechnicalFailure(input.interviewId, message)
           .catch(() => undefined);
+        lifecycleFinalized = true;
       } finally {
         void hangUpRealtimeCall(input.callId).finally(() => ws.close());
       }

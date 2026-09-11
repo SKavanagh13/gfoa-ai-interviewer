@@ -85,7 +85,6 @@ export async function runSidebandController(
 
   await new Promise<void>((resolve, reject) => {
     let settled = false;
-    let sawEndSignal = false;
     let intentionalFinalization = false;
     let startedAtMs: number | null = null;
     let elapsedUpdateTimer: ReturnType<typeof setInterval> | null = null;
@@ -165,25 +164,15 @@ export async function runSidebandController(
           await input.repository.recordUsage(input.interviewId, parsed);
         } else if (parsed.kind === "completedClosing") {
           await finalizeCompletedInterview();
-        } else if (parsed.kind === "sessionEnded") {
-          sawEndSignal = true;
         }
       }
     }
 
     async function finalizeTranscript() {
-      if (sawEndSignal || intentionalFinalization) {
-        await input.repository.markTranscriptStable(
-          input.interviewId,
-          reconciliationTimeoutMs,
-        );
-      } else {
-        await input.repository.markTranscriptFailed(
-          input.interviewId,
-          reconciliationTimeoutMs,
-          "Sideband closed before receiving a session-end signal.",
-        );
-      }
+      await input.repository.markTranscriptStable(
+        input.interviewId,
+        reconciliationTimeoutMs,
+      );
     }
 
     function sendTimingSignal(kind: TimingSignalKind) {

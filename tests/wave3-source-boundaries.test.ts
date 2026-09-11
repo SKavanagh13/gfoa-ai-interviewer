@@ -90,7 +90,7 @@ describe("Wave 3 route and runtime boundaries", () => {
     expect(route).toContain('"sideband_dispatch_failed"');
   });
 
-  it("treats hard-cap sideband closure as intentional transcript finalization", () => {
+  it("routes sideband closure through canonical transcript stabilization", () => {
     const controller = readWorkspaceFile(
       "lib",
       "interview",
@@ -98,7 +98,9 @@ describe("Wave 3 route and runtime boundaries", () => {
     );
 
     expect(controller).toMatch(/intentionalFinalization = true[\s\S]*hangUpRealtimeCall/);
-    expect(controller).toContain("sawEndSignal || intentionalFinalization");
+    expect(controller).toMatch(
+      /ws\.on\("close"[\s\S]*finalizeTranscript[\s\S]*markTranscriptStable/,
+    );
   });
 
   it("does not overwrite prior completed or technical-failure dispositions", () => {

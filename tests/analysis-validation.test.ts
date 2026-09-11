@@ -78,6 +78,18 @@ describe("Wave 5 structured output schema", () => {
   it("sets additionalProperties false and requires all object properties", () => {
     expect(collectObjectSchemaIssues(postInterviewOutputSchema)).toEqual([]);
   });
+
+  it("constrains structured field names to the locked objective fields", () => {
+    const fieldNameSchema = postInterviewOutputSchema.properties
+      .objective_results.items.properties.structured_fields.items.properties
+      .field_name;
+    const allowedFieldNames = Object.values(OBJECTIVE_FIELD_NAMES).flat();
+
+    expect(fieldNameSchema.enum).toEqual(allowedFieldNames);
+    expect(fieldNameSchema.enum).not.toContain("issue_description");
+    expect(fieldNameSchema.enum).not.toContain("revenue_forecast_focus");
+    expect(fieldNameSchema.enum).not.toContain("theoretical_approach");
+  });
 });
 
 describe("Wave 5 post-interview output validation", () => {

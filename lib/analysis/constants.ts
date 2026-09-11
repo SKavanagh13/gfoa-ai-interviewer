@@ -1,10 +1,10 @@
 import type { Database } from "@/types/database.types";
 
-export const ANALYSIS_PROMPT_VERSION = "wave5-post-interview-analysis-v1";
+export const ANALYSIS_PROMPT_VERSION = "wave5-post-interview-analysis-v2";
 export const OUTPUT_SPECIFICATION_VERSION =
   "locked-03-per-interview-output-specification";
-export const STRUCTURED_SCHEMA_VERSION = "wave5-post-interview-output-v1";
-export const ELIGIBILITY_PROMPT_VERSION = "wave5-analysis-eligibility-v1";
+export const STRUCTURED_SCHEMA_VERSION = "wave5-post-interview-output-v2";
+export const ELIGIBILITY_PROMPT_VERSION = "wave5-analysis-eligibility-v2";
 export const ELIGIBILITY_SCHEMA_VERSION = "wave5-analysis-eligibility-v1";
 
 export const OBJECTIVES = [

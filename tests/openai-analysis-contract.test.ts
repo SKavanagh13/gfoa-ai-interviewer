@@ -28,4 +28,9 @@ describe("Wave 5 OpenAI analysis contract", () => {
     expect(source).toContain("input_tokens");
     expect(source).toContain("output_tokens");
   });
+
+  it("instructs classifiers to cite canonical segment IDs instead of sequence numbers", () => {
+    expect(source).toContain("Use only the UUID-like segment IDs");
+    expect(source).toContain("Do not cite transcript sequence numbers");
+  });
 });

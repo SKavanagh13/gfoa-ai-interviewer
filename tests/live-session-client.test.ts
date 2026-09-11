@@ -1,8 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
+  finalizeParticipantEnd,
   liveDescription,
   realtimeStartFailureMessage,
   liveVisualState,
+  shouldFinalizeParticipantEndOnPageExit,
 } from "@/app/interview/created/live-session-client";
 
 describe("Live session participant cues", () => {
@@ -37,5 +39,32 @@ describe("Live session participant cues", () => {
     ).toBe(
       "We can support 20 AI interviews at one time, and all 20 interviewers are currently in use. Please try again in a few minutes.",
     );
+  });
+
+  it("uses a keepalive request when finalizing participant end", async () => {
+    const fetchImpl = vi.fn(async () => new Response(null, { status: 200 }));
+
+    await finalizeParticipantEnd("interview-1", fetchImpl as never);
+
+    expect(fetchImpl).toHaveBeenCalledWith("/api/interview/interview-1/end", {
+      method: "POST",
+      keepalive: true,
+    });
+  });
+
+  it("keeps finalization pending when participant end is not accepted", async () => {
+    const fetchImpl = vi.fn(async () => new Response(null, { status: 500 }));
+
+    await expect(
+      finalizeParticipantEnd("interview-1", fetchImpl as never),
+    ).rejects.toThrow("The interview could not be finalized.");
+  });
+
+  it("attempts participant-end finalization when a live page exits", () => {
+    expect(shouldFinalizeParticipantEndOnPageExit("connected")).toBe(true);
+    expect(shouldFinalizeParticipantEndOnPageExit("near_limit")).toBe(true);
+    expect(shouldFinalizeParticipantEndOnPageExit("failed")).toBe(true);
+    expect(shouldFinalizeParticipantEndOnPageExit("ended")).toBe(false);
+    expect(shouldFinalizeParticipantEndOnPageExit("mic_ready")).toBe(false);
   });
 });

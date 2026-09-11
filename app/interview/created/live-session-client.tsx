@@ -72,6 +72,36 @@ export function LiveSessionClient({
   }, [state]);
 
   useEffect(() => {
+    if (previewMode) {
+      return;
+    }
+
+    function finalizeOnPageExit() {
+      if (!shouldFinalizeParticipantEndOnPageExit(stateRef.current)) {
+        return;
+      }
+
+      const url = `/api/interview/${interviewId}/end`;
+
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(url, new Blob([], { type: "text/plain" }));
+        return;
+      }
+
+      void fetch(url, {
+        method: "POST",
+        keepalive: true,
+      });
+    }
+
+    window.addEventListener("pagehide", finalizeOnPageExit);
+
+    return () => {
+      window.removeEventListener("pagehide", finalizeOnPageExit);
+    };
+  }, [interviewId, previewMode]);
+
+  useEffect(() => {
     if (
       state !== "connected" &&
       state !== "near_limit" &&
@@ -228,11 +258,15 @@ export function LiveSessionClient({
     }
 
     try {
-      await fetch(`/api/interview/${interviewId}/end`, {
-        method: "POST",
-      });
-    } finally {
+      await finalizeParticipantEnd(interviewId);
       setState("ended");
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "The interview could not be finalized.",
+      );
+      setState("failed");
     }
   }
 
@@ -695,6 +729,35 @@ export function liveDescription(
   }
 
   return "Speak naturally. The interviewer may pause briefly before asking the next question.";
+}
+
+export async function finalizeParticipantEnd(
+  interviewId: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<void> {
+  const response = await fetchImpl(`/api/interview/${interviewId}/end`, {
+    method: "POST",
+    keepalive: true,
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      "The interview could not be finalized. Please try ending it again.",
+    );
+  }
+}
+
+export function shouldFinalizeParticipantEndOnPageExit(
+  state: LiveState,
+): boolean {
+  return [
+    "connecting",
+    "connected",
+    "near_limit",
+    "awaiting_continuation_consent",
+    "ending",
+    "failed",
+  ].includes(state);
 }
 
 async function readRealtimeStartFailure(

@@ -102,7 +102,9 @@ describe("interview session cost recording", () => {
     );
 
     await abandonedRepository.markParticipantEnded("interview-1");
-    expect(abandoned.updates.at(-1)).toMatchObject({
+    expect(abandoned.updates).toHaveLength(1);
+    expect(abandoned.updates[0]).toMatchObject({
+      browser_connection_status: "closed",
       end_disposition: "participant_ended",
       cost_category: "abandoned",
     });

@@ -184,17 +184,14 @@ export class InterviewSessionRepository {
   }
 
   async markParticipantEnded(interviewId: string): Promise<void> {
-    await this.updateInterview(interviewId, {
-      browser_connection_status: "closed",
-      ended_at: new Date().toISOString(),
-    });
-
+    const endedAt = new Date().toISOString();
     const { error } = await this.supabase
       .from("interviews")
       .update({
         lifecycle_status: "ended",
         end_disposition: "participant_ended",
-        ended_at: new Date().toISOString(),
+        browser_connection_status: "closed",
+        ended_at: endedAt,
         transcript_status: "stabilizing",
         cost_category: "abandoned",
       })

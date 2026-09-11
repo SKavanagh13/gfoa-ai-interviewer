@@ -28,17 +28,23 @@ describe("participant end route", () => {
     await expect(response.json()).resolves.toEqual({ error: "Unauthorized" });
   });
 
-  it("marks the participant-ended lifecycle even when Realtime hangup fails", async () => {
+  it("marks the participant-ended lifecycle before Realtime hangup", async () => {
+    const calls: string[] = [];
     const repository = {
       getLiveInterviewContext: vi.fn(async () => ({
         realtimeCallId: "rtc_123",
       })),
-      markParticipantEnded: vi.fn(async () => {}),
+      markParticipantEnded: vi.fn(async () => {
+        calls.push("markParticipantEnded");
+      }),
     };
     vi.mocked(createAuthorizedParticipantRepository).mockResolvedValue(
       repository as never,
     );
-    vi.mocked(hangUpRealtimeCall).mockRejectedValue(new Error("not found"));
+    vi.mocked(hangUpRealtimeCall).mockImplementation(async () => {
+      calls.push("hangUpRealtimeCall");
+      throw new Error("not found");
+    });
 
     const response = await POST(new Request("http://localhost"), {
       params: Promise.resolve({ interviewId: "interview-1" }),
@@ -48,5 +54,6 @@ describe("participant end route", () => {
     await expect(response.json()).resolves.toEqual({ ok: true });
     expect(hangUpRealtimeCall).toHaveBeenCalledWith("rtc_123");
     expect(repository.markParticipantEnded).toHaveBeenCalledWith("interview-1");
+    expect(calls).toEqual(["markParticipantEnded", "hangUpRealtimeCall"]);
   });
 });

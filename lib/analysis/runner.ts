@@ -1,7 +1,5 @@
-import "server-only";
-
-import { getServerEnv } from "@/lib/env";
-import { createServiceRoleSupabaseClient } from "@/lib/supabase/server";
+import { getServerRuntimeEnv } from "@/lib/server-runtime-env";
+import { createServiceRoleSupabaseRuntimeClient } from "@/lib/supabase/service-role";
 import {
   requestEligibilityClassification,
   requestPostInterviewAnalysis,
@@ -70,10 +68,10 @@ export type PostInterviewAnalysisRunnerDependencies = {
 export async function runPostInterviewAnalysis(
   interviewId: string,
 ): Promise<RunPostInterviewAnalysisResult> {
-  const env = getServerEnv();
+  const env = getServerRuntimeEnv();
   return runPostInterviewAnalysisWithDependencies(interviewId, {
     analysisModel: env.OPENAI_ANALYSIS_MODEL,
-    repository: new AnalysisRepository(createServiceRoleSupabaseClient()),
+    repository: new AnalysisRepository(createServiceRoleSupabaseRuntimeClient()),
     requestEligibilityClassification,
     requestPostInterviewAnalysis,
   });
@@ -82,10 +80,10 @@ export async function runPostInterviewAnalysis(
 export async function enqueuePostInterviewAnalysis(
   interviewId: string,
 ): Promise<EnqueuePostInterviewAnalysisResult> {
-  const env = getServerEnv();
+  const env = getServerRuntimeEnv();
   return enqueuePostInterviewAnalysisWithDependencies(interviewId, {
     analysisModel: env.OPENAI_ANALYSIS_MODEL,
-    repository: new AnalysisRepository(createServiceRoleSupabaseClient()),
+    repository: new AnalysisRepository(createServiceRoleSupabaseRuntimeClient()),
     requestEligibilityClassification,
     requestPostInterviewAnalysis,
   });
@@ -129,10 +127,10 @@ export async function enqueuePostInterviewAnalysisWithDependencies(
 export async function processPendingAnalysisRun(
   analysisId: string,
 ): Promise<RunPostInterviewAnalysisResult> {
-  const env = getServerEnv();
+  const env = getServerRuntimeEnv();
   return processPendingAnalysisRunWithDependencies(analysisId, {
     analysisModel: env.OPENAI_ANALYSIS_MODEL,
-    repository: new AnalysisRepository(createServiceRoleSupabaseClient()),
+    repository: new AnalysisRepository(createServiceRoleSupabaseRuntimeClient()),
     requestEligibilityClassification,
     requestPostInterviewAnalysis,
   });
@@ -162,14 +160,16 @@ export async function processPendingAnalysisRunWithDependencies(
 export async function drainPendingAnalysisQueue(input: {
   limit?: number;
 } = {}): Promise<DrainPendingAnalysisQueueResult> {
-  const env = getServerEnv();
+  const env = getServerRuntimeEnv();
   const limit = input.limit ?? Number(env.ANALYSIS_WORKER_BATCH_SIZE);
 
   return drainPendingAnalysisQueueWithDependencies(
     { limit },
     {
       analysisModel: env.OPENAI_ANALYSIS_MODEL,
-      repository: new AnalysisRepository(createServiceRoleSupabaseClient()),
+      repository: new AnalysisRepository(
+        createServiceRoleSupabaseRuntimeClient(),
+      ),
       requestEligibilityClassification,
       requestPostInterviewAnalysis,
     },

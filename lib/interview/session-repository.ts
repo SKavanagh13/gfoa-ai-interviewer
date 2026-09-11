@@ -151,6 +151,12 @@ export class InterviewSessionRepository {
     await this.tryMarkInterviewActive(interviewId);
   }
 
+  async markSidebandClosed(interviewId: string): Promise<void> {
+    await this.updateInterview(interviewId, {
+      sideband_connection_status: "closed",
+    });
+  }
+
   async tryMarkInterviewActive(interviewId: string): Promise<string | null> {
     const { data, error } = await this.supabase.rpc("try_mark_interview_active", {
       p_interview_id: interviewId,

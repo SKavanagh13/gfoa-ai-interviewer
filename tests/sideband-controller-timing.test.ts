@@ -144,6 +144,8 @@ describe("sideband controller timing signals", () => {
       markSidebandConnected: vi.fn(async () => {}),
       insertFinalTranscriptSegment: vi.fn(async () => {}),
       recordUsage: vi.fn(async () => {}),
+      markParticipantEnded: vi.fn(async () => {}),
+      markSidebandClosed: vi.fn(async () => {}),
       markTranscriptStable: vi.fn(async () => {}),
       markTranscriptFailed: vi.fn(async () => {}),
       markTechnicalFailure: vi.fn(async () => {}),
@@ -201,6 +203,8 @@ describe("sideband controller timing signals", () => {
       markSidebandConnected: vi.fn(async () => {}),
       insertFinalTranscriptSegment: vi.fn(async () => {}),
       recordUsage: vi.fn(async () => {}),
+      markParticipantEnded: vi.fn(async () => {}),
+      markSidebandClosed: vi.fn(async () => {}),
       markTranscriptStable: vi.fn(async () => {}),
       markTranscriptFailed: vi.fn(async () => {}),
       markTechnicalFailure: vi.fn(async () => {}),
@@ -222,6 +226,10 @@ describe("sideband controller timing signals", () => {
       "interview-1",
       5000,
     );
+    expect(repository.markParticipantEnded).toHaveBeenCalledWith(
+      "interview-1",
+    );
+    expect(repository.markSidebandClosed).toHaveBeenCalledWith("interview-1");
     expect(repository.markTranscriptFailed).not.toHaveBeenCalled();
   });
 
@@ -230,6 +238,8 @@ describe("sideband controller timing signals", () => {
       markSidebandConnected: vi.fn(async () => {}),
       insertFinalTranscriptSegment: vi.fn(async () => {}),
       recordUsage: vi.fn(async () => {}),
+      markParticipantEnded: vi.fn(async () => {}),
+      markSidebandClosed: vi.fn(async () => {}),
       markTranscriptStable: vi.fn(async () => {}),
       markTranscriptFailed: vi.fn(async () => {}),
       markTechnicalFailure: vi.fn(async () => {}),
@@ -276,6 +286,8 @@ describe("sideband controller timing signals", () => {
       }),
     );
     expect(repository.markCompleted).toHaveBeenCalledWith("interview-1");
+    expect(repository.markParticipantEnded).not.toHaveBeenCalled();
+    expect(repository.markSidebandClosed).toHaveBeenCalledWith("interview-1");
     expect(hangUpRealtimeCall).toHaveBeenCalledWith("rtc_123");
     expect(repository.markTranscriptStable).toHaveBeenCalledWith(
       "interview-1",
@@ -289,6 +301,7 @@ describe("sideband controller timing signals", () => {
       markSidebandConnected: vi.fn(async () => {}),
       insertFinalTranscriptSegment: vi.fn(async () => {}),
       recordUsage: vi.fn(async () => {}),
+      markSidebandClosed: vi.fn(async () => {}),
       markTranscriptStable: vi.fn(async () => {}),
       markTranscriptFailed: vi.fn(async () => {}),
       markTechnicalFailure: vi.fn(async () => {}),
@@ -346,6 +359,8 @@ describe("sideband controller timing signals", () => {
       markSidebandConnected: vi.fn(async () => {}),
       insertFinalTranscriptSegment: vi.fn(async () => {}),
       recordUsage: vi.fn(async () => {}),
+      markParticipantEnded: vi.fn(async () => {}),
+      markSidebandClosed: vi.fn(async () => {}),
       markTranscriptStable: vi.fn(async () => {}),
       markTranscriptFailed: vi.fn(async () => {}),
       markTechnicalFailure: vi.fn(async () => {}),
@@ -386,6 +401,10 @@ describe("sideband controller timing signals", () => {
       "20-minute hard limit",
     );
     expect(hangUpRealtimeCall).toHaveBeenCalledWith("rtc_123");
+    expect(repository.markParticipantEnded).toHaveBeenCalledWith(
+      "interview-1",
+    );
+    expect(repository.markSidebandClosed).toHaveBeenCalledWith("interview-1");
     expect(repository.markTranscriptStable).toHaveBeenCalledWith(
       "interview-1",
       5000,
@@ -398,6 +417,7 @@ describe("sideband controller timing signals", () => {
       markSidebandConnected: vi.fn(async () => {}),
       insertFinalTranscriptSegment: vi.fn(async () => {}),
       recordUsage: vi.fn(async () => {}),
+      markSidebandClosed: vi.fn(async () => {}),
       markTranscriptStable: vi.fn(async () => {}),
       markTranscriptFailed: vi.fn(async () => {}),
       markTechnicalFailure: vi.fn(async () => {}),
@@ -445,6 +465,7 @@ describe("sideband controller timing signals", () => {
     expect(repository.markParticipantEnded).toHaveBeenCalledWith(
       "interview-1",
     );
+    expect(repository.markSidebandClosed).toHaveBeenCalledWith("interview-1");
     expect(repository.markTranscriptStable).toHaveBeenCalledWith(
       "interview-1",
       5000,
@@ -457,6 +478,7 @@ describe("sideband controller timing signals", () => {
       markSidebandConnected: vi.fn(async () => {}),
       insertFinalTranscriptSegment: vi.fn(async () => {}),
       recordUsage: vi.fn(async () => {}),
+      markSidebandClosed: vi.fn(async () => {}),
       markTranscriptStable: vi.fn(async () => {}),
       markTranscriptFailed: vi.fn(async () => {}),
       markTechnicalFailure: vi.fn(async () => {}),

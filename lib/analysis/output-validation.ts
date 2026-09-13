@@ -1,6 +1,7 @@
 import {
   CONFIDENCE_VALUES,
   COVERAGE_VALUES,
+  CODED_FIELD_VALUE_OPTIONS,
   OBJECTIVE_FIELD_NAMES,
   OBJECTIVES,
   OVERALL_QUALITY_VALUES,
@@ -268,6 +269,15 @@ function validateStructuredFields(
       issues.push(
         `${result.objective}.${field.field_name} unsupported values must be null.`,
       );
+    }
+
+    const allowedValues = CODED_FIELD_VALUE_OPTIONS[field.field_name];
+    if (field.value_status === "supported" && allowedValues) {
+      if (typeof field.value !== "string" || !allowedValues.includes(field.value)) {
+        issues.push(
+          `${result.objective}.${field.field_name} must be one of ${allowedValues.join(", ")}.`,
+        );
+      }
     }
   }
 }

@@ -1,9 +1,9 @@
 import type { Database } from "@/types/database.types";
 
-export const ANALYSIS_PROMPT_VERSION = "wave5-post-interview-analysis-v2";
+export const ANALYSIS_PROMPT_VERSION = "wave5-post-interview-analysis-v3";
 export const OUTPUT_SPECIFICATION_VERSION =
   "locked-03-per-interview-output-specification";
-export const STRUCTURED_SCHEMA_VERSION = "wave5-post-interview-output-v2";
+export const STRUCTURED_SCHEMA_VERSION = "wave5-post-interview-output-v3";
 export const ELIGIBILITY_PROMPT_VERSION = "wave5-analysis-eligibility-v2";
 export const ELIGIBILITY_SCHEMA_VERSION = "wave5-analysis-eligibility-v1";
 
@@ -66,6 +66,64 @@ export const OBJECTIVE_FIELD_NAMES: Record<Objective, readonly string[]> = {
     "principal_source_of_caution",
     "role_of_peer_evidence",
     "preferred_adoption_posture",
+  ],
+};
+
+export const CODED_FIELD_VALUE_OPTIONS: Record<string, readonly string[]> = {
+  status: ["new", "worsening", "recurring", "unclear"],
+  evidence_basis: [
+    "direct_experience",
+    "observation",
+    "expectation",
+    "general_opinion",
+    "unclear",
+  ],
+  time_horizon: ["long_standing", "likely_to_persist", "uncertain", "unclear"],
+  concrete_example_provided: ["yes", "no", "partial"],
+  type_of_change: [
+    "economic",
+    "technological",
+    "regulatory",
+    "political",
+    "workforce",
+    "organizational",
+    "community_expectations",
+    "intergovernmental",
+    "other",
+    "not_yet_classified",
+  ],
+  expected_duration: ["temporary", "continuing", "uncertain", "not_discussed"],
+  type_of_support: [
+    "guidance",
+    "training",
+    "data",
+    "analytical_tool",
+    "technology",
+    "peer_learning",
+    "implementation_support",
+    "staffing_or_capacity",
+    "communication_support",
+    "advocacy",
+    "other",
+    "not_yet_classified",
+  ],
+  potential_gfoa_role: [
+    "direct",
+    "supporting",
+    "convening",
+    "unclear",
+    "none_identified",
+  ],
+  role_of_peer_evidence: ["high", "moderate", "low", "mixed", "unclear"],
+  preferred_adoption_posture: [
+    "explores_early",
+    "tests_on_a_limited_basis",
+    "waits_for_evidence",
+    "waits_for_peer_validation",
+    "adopts_when_a_clear_need_arises",
+    "highly_context_dependent",
+    "unclear",
+    "other",
   ],
 };
 

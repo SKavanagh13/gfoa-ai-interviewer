@@ -5,7 +5,11 @@ import {
   validateEligibilityModelResult,
   validatePostInterviewOutput,
 } from "@/lib/analysis/output-validation";
-import { OBJECTIVES, OBJECTIVE_FIELD_NAMES } from "@/lib/analysis/constants";
+import {
+  CODED_FIELD_VALUE_OPTIONS,
+  OBJECTIVES,
+  OBJECTIVE_FIELD_NAMES,
+} from "@/lib/analysis/constants";
 import type { PostInterviewOutput } from "@/lib/analysis/types";
 import type { CanonicalTranscriptSegment } from "@/lib/transcript/types";
 
@@ -131,6 +135,45 @@ describe("Wave 5 post-interview output validation", () => {
     const result = validatePostInterviewOutput(output, [segment({})]);
     expect(result).toMatchObject({ ok: false });
     expect(result.ok ? [] : result.issues.join(" ")).toContain("unsupported");
+  });
+
+  it("rejects free text in coded structured fields", () => {
+    const output = validOutput();
+    output.objective_results[0].structured_fields = [
+      {
+        field_name: "status",
+        value: "needs to balance for adequate funding",
+        value_status: "supported",
+      },
+    ];
+
+    const result = validatePostInterviewOutput(output, [segment({})]);
+
+    expect(result).toMatchObject({ ok: false });
+    expect(result.ok ? [] : result.issues.join(" ")).toContain(
+      "current_issue.status must be one of",
+    );
+  });
+
+  it("accepts exact approved values in coded structured fields", () => {
+    const output = validOutput();
+    output.objective_results[0].structured_fields = [
+      {
+        field_name: "status",
+        value: "unclear",
+        value_status: "supported",
+      },
+      {
+        field_name: "evidence_basis",
+        value: "direct_experience",
+        value_status: "supported",
+      },
+    ];
+
+    expect(validatePostInterviewOutput(output, [segment({})])).toMatchObject({
+      ok: true,
+    });
+    expect(CODED_FIELD_VALUE_OPTIONS.status).toContain("recurring");
   });
 
   it("requires cited segment IDs to exist and be final", () => {

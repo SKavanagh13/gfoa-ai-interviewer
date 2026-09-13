@@ -30,7 +30,8 @@ describe("Wave 5 OpenAI analysis contract", () => {
   });
 
   it("instructs classifiers to cite canonical segment IDs instead of sequence numbers", () => {
-    expect(source).toContain("Use only the UUID-like segment IDs");
-    expect(source).toContain("Do not cite transcript sequence numbers");
+    expect(source).toContain("Use only segment_id values");
+    expect(source).toContain("find the matching transcript_label row");
+    expect(source).toContain("Do not cite transcript labels or sequence numbers");
   });
 });

@@ -373,8 +373,8 @@ export function buildSegmentMap(segments: readonly CanonicalTranscriptSegment[])
   return segments
     .map((segment) =>
       [
-        segment.segmentId,
-        `sequence=${segment.sequenceNumber}`,
+        `transcript_label=[${segment.sequenceNumber.toString().padStart(4, "0")}]`,
+        `segment_id=${segment.segmentId}`,
         `speaker=${segment.speaker}`,
         `is_final=${String(segment.isFinal)}`,
       ].join(" | "),

@@ -1045,6 +1045,12 @@ input:focus-visible {
   font-size: 0.95rem;
 }
 
+.admin-shell h5 {
+  font-size: 0.78rem;
+  margin: 0;
+  text-transform: uppercase;
+}
+
 .admin-grid {
   display: grid;
   gap: 20px;
@@ -1157,6 +1163,48 @@ input:focus-visible {
   overflow-wrap: anywhere;
 }
 
+.structured-fields {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.structured-fields-grid {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  grid-template-columns: minmax(160px, 0.85fr) minmax(120px, 0.45fr) minmax(
+      220px,
+      1.7fr
+    );
+  overflow: hidden;
+}
+
+.structured-fields-header,
+.structured-fields-row > div {
+  border-bottom: 1px solid var(--border);
+  padding: 0.65rem 0.75rem;
+}
+
+.structured-fields-header {
+  background: #eef3ef;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.structured-fields-row {
+  display: contents;
+}
+
+.structured-fields-row > div {
+  overflow-wrap: anywhere;
+}
+
+.structured-fields-row:last-child > div {
+  border-bottom: 0;
+}
+
 .subpanel,
 .transcript-segment {
   background: #f7f9f6;
@@ -1223,6 +1271,26 @@ blockquote {
   .field-grid,
   .admin-grid {
     grid-template-columns: 1fr;
+  }
+
+  .structured-fields-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .structured-fields-header {
+    display: none;
+  }
+
+  .structured-fields-row {
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    gap: 0.25rem;
+    padding: 0.65rem 0.75rem;
+  }
+
+  .structured-fields-row > div {
+    border-bottom: 0;
+    padding: 0;
   }
 
   .split-row {

@@ -3,6 +3,12 @@ import { notFound } from "next/navigation";
 import { rerunAnalysis, setNegativeReactionFlag } from "@/app/admin/actions";
 import { requireStaffOrAdmin } from "@/lib/admin/auth";
 import { AdminRepository } from "@/lib/admin/repository";
+import {
+  formatAdminStructuredFieldLabel,
+  formatAdminStructuredFieldStatus,
+  formatAdminStructuredFieldValue,
+  parseAdminStructuredFields,
+} from "@/lib/admin/structured-fields";
 import { createAuthenticatedSupabaseClient } from "@/lib/supabase/auth-server";
 import type {
   AdminAnalysisRunDetail,
@@ -10,6 +16,7 @@ import type {
   AdminParticipantIdentity,
   AdminTranscriptSegment,
 } from "@/lib/admin/types";
+import type { Json } from "@/types/database.types";
 
 export const dynamic = "force-dynamic";
 
@@ -319,10 +326,7 @@ function SelectedAnalysis({ run }: { run: AdminAnalysisRunDetail | null }) {
               </div>
               <p>{objective.narrativeSummary}</p>
               <Definition label="Coverage" value={formatStatus(objective.coverage)} />
-              <Definition
-                label="Structured fields"
-                value={JSON.stringify(objective.structuredFields)}
-              />
+              <StructuredFields fields={objective.structuredFields} />
               <EvidenceLinks segmentIds={objective.evidence.map((item) => item.segmentId)} />
             </article>
           ))
@@ -411,6 +415,32 @@ function IdentityPanel({
       <Definition label="Title" value={identity.title} />
       <Definition label="Organization" value={identity.organizationName} />
     </>
+  );
+}
+
+function StructuredFields({ fields }: { fields: Json }) {
+  const structuredFields = parseAdminStructuredFields(fields);
+
+  if (structuredFields.length === 0) {
+    return <Definition label="Structured fields" value={null} />;
+  }
+
+  return (
+    <div className="structured-fields">
+      <h5>Structured Fields</h5>
+      <div className="structured-fields-grid">
+        <div className="structured-fields-header">Field</div>
+        <div className="structured-fields-header">Status</div>
+        <div className="structured-fields-header">Value</div>
+        {structuredFields.map((field) => (
+          <div className="structured-fields-row" key={field.fieldName}>
+            <div>{formatAdminStructuredFieldLabel(field.fieldName)}</div>
+            <div>{formatAdminStructuredFieldStatus(field.valueStatus)}</div>
+            <div>{formatAdminStructuredFieldValue(field)}</div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

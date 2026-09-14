@@ -176,6 +176,44 @@ describe("Wave 5 post-interview output validation", () => {
     expect(CODED_FIELD_VALUE_OPTIONS.status).toContain("recurring");
   });
 
+  it("normalizes formatting variants for approved coded structured values", () => {
+    const output = validOutput();
+    output.objective_results[3].structured_fields = [
+      {
+        field_name: "expected_duration",
+        value: "not discussed",
+        value_status: "supported",
+      },
+      {
+        field_name: "type_of_change",
+        value: "Community Expectations",
+        value_status: "supported",
+      },
+    ];
+
+    const result = validatePostInterviewOutput(output, [segment({})]);
+
+    expect(result).toMatchObject({ ok: true });
+    if (!result.ok) {
+      return;
+    }
+    expect(result.output.objective_results[3].structured_fields).toEqual([
+      {
+        field_name: "expected_duration",
+        value: "not_discussed",
+        value_status: "supported",
+      },
+      {
+        field_name: "type_of_change",
+        value: "community_expectations",
+        value_status: "supported",
+      },
+    ]);
+    expect(output.objective_results[3].structured_fields[0]?.value).toBe(
+      "not discussed",
+    );
+  });
+
   it("requires cited segment IDs to exist and be final", () => {
     const output = validOutput();
     output.objective_results[0].supporting_segment_ids = ["missing-segment"];

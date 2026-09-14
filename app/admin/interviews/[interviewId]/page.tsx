@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { rerunAnalysis, setNegativeReactionFlag } from "@/app/admin/actions";
+import { setNegativeReactionFlag } from "@/app/admin/actions";
+import { RerunAnalysisForm } from "@/app/admin/interviews/[interviewId]/rerun-analysis-form";
 import { requireStaffOrAdmin } from "@/lib/admin/auth";
 import {
   summarizeAdminProcessingStatus,
@@ -223,12 +224,7 @@ export default async function AdminInterviewPage({
               Mark No Negative Reaction
             </button>
           </form>
-          <form action={rerunAnalysis}>
-            <input name="interviewId" type="hidden" value={detail.interviewId} />
-            <button className="secondary-button" type="submit">
-              Queue Analysis Rerun
-            </button>
-          </form>
+          <RerunAnalysisForm interviewId={detail.interviewId} />
         </div>
       </section>
 

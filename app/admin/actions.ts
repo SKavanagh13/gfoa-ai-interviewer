@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { RerunAnalysisActionState } from "@/app/admin/action-state";
 import { requireStaffOrAdmin } from "@/lib/admin/auth";
 import { AdminRepository } from "@/lib/admin/repository";
 import { enqueuePostInterviewAnalysis } from "@/lib/analysis/runner";
@@ -40,6 +41,51 @@ export async function setNegativeReactionFlag(formData: FormData) {
 }
 
 export async function rerunAnalysis(formData: FormData) {
+  const result = await enqueueAnalysisRerun(formData);
+
+  if (!result.ok) {
+    throw new Error(result.message);
+  }
+}
+
+export async function rerunAnalysisWithState(
+  _previousState: RerunAnalysisActionState,
+  formData: FormData,
+): Promise<RerunAnalysisActionState> {
+  try {
+    const result = await enqueueAnalysisRerun(formData);
+
+    if (!result.ok) {
+      return {
+        status: "failed",
+        message: result.message,
+        analysisId: null,
+      };
+    }
+
+    return {
+      status: "queued",
+      message: `Analysis rerun queued (${result.analysisId.slice(0, 8)}).`,
+      analysisId: result.analysisId,
+    };
+  } catch (error) {
+    return {
+      status: "failed",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to queue analysis rerun.",
+      analysisId: null,
+    };
+  }
+}
+
+async function enqueueAnalysisRerun(
+  formData: FormData,
+): Promise<
+  | { ok: true; analysisId: string }
+  | { ok: false; message: string }
+> {
   await requireStaffOrAdmin();
 
   const interviewId = requireInterviewId(formData);
@@ -57,8 +103,10 @@ export async function rerunAnalysis(formData: FormData) {
   revalidatePath(`/admin/interviews/${interviewId}`);
 
   if (result.status === "failed") {
-    throw new Error(result.errorMessage);
+    return { ok: false, message: result.errorMessage };
   }
+
+  return { ok: true, analysisId: result.analysisId };
 }
 
 function requireInterviewId(formData: FormData): string {

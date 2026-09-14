@@ -82,6 +82,40 @@ describe("Wave 6 admin actions", () => {
     expect(enqueuePostInterviewAnalysis).toHaveBeenCalledWith(interviewId);
   });
 
+  it("returns queued feedback when enqueueing a rerun succeeds", async () => {
+    const { rerunAnalysisWithState } = await import("@/app/admin/actions");
+
+    await expect(
+      rerunAnalysisWithState(
+        { status: "idle", message: null, analysisId: null },
+        formData({ interviewId }),
+      ),
+    ).resolves.toEqual({
+      status: "queued",
+      message: "Analysis rerun queued (analysis).",
+      analysisId: "analysis-1",
+    });
+  });
+
+  it("returns failed feedback when enqueueing a rerun fails", async () => {
+    enqueuePostInterviewAnalysis.mockResolvedValue({
+      status: "failed",
+      errorMessage: "Analysis cannot be queued until transcript status is stable.",
+    });
+    const { rerunAnalysisWithState } = await import("@/app/admin/actions");
+
+    await expect(
+      rerunAnalysisWithState(
+        { status: "idle", message: null, analysisId: null },
+        formData({ interviewId }),
+      ),
+    ).resolves.toEqual({
+      status: "failed",
+      message: "Analysis cannot be queued until transcript status is stable.",
+      analysisId: null,
+    });
+  });
+
   it("rejects unauthenticated callers before rerun", async () => {
     requireStaffOrAdmin.mockRejectedValue(new Error("redirect:/admin/login"));
     const { rerunAnalysis } = await import("@/app/admin/actions");

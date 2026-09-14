@@ -278,6 +278,22 @@ function ProcessingStatusPanel({ detail }: { detail: AdminInterviewDetail }) {
           label="Latest analysis"
           value={formatLatestAnalysis(processingStatus)}
         />
+        <Definition
+          label="Queue state"
+          value={formatQueueState(processingStatus)}
+        />
+        <Definition
+          label="Last worker result"
+          value={formatLastWorkerResult(processingStatus)}
+        />
+        <Definition
+          label="Last success"
+          value={formatLastSuccess(processingStatus)}
+        />
+        <Definition
+          label="Analysis attempts"
+          value={String(processingStatus.workerActivity.analysisRunCount)}
+        />
         <Definition label="Technical error" value={detail.technicalError} />
         <Definition
           label="Transcript error"
@@ -308,6 +324,8 @@ function AnalysisHistory({ detail }: { detail: AdminInterviewDetail }) {
                 <th>Status</th>
                 <th>Model</th>
                 <th>Created</th>
+                <th>Updated</th>
+                <th>Error</th>
               </tr>
             </thead>
             <tbody>
@@ -324,6 +342,8 @@ function AnalysisHistory({ detail }: { detail: AdminInterviewDetail }) {
                   <td>{formatStatus(run.status)}</td>
                   <td>{run.analysisModel ?? "Missing"}</td>
                   <td>{formatDate(run.createdAt)}</td>
+                  <td>{formatDate(run.updatedAt)}</td>
+                  <td>{run.errorMessage ?? ""}</td>
                 </tr>
               ))}
             </tbody>
@@ -427,6 +447,39 @@ function formatLatestAnalysis(processingStatus: AdminProcessingStatus) {
   return `${latestAnalysisRun.analysisId.slice(0, 8)} - ${formatStatus(
     latestAnalysisRun.status,
   )} - ${formatDate(latestAnalysisRun.createdAt) ?? "Missing date"}`;
+}
+
+function formatQueueState(processingStatus: AdminProcessingStatus) {
+  const pendingRun = processingStatus.workerActivity.pendingRun;
+  if (!pendingRun) {
+    return "No pending run";
+  }
+
+  return `${pendingRun.analysisId.slice(0, 8)} pending since ${
+    formatDate(pendingRun.createdAt) ?? "missing date"
+  }`;
+}
+
+function formatLastWorkerResult(processingStatus: AdminProcessingStatus) {
+  const lastProcessedRun = processingStatus.workerActivity.lastProcessedRun;
+  if (!lastProcessedRun) {
+    return "No worker result yet";
+  }
+
+  return `${lastProcessedRun.analysisId.slice(0, 8)} - ${formatStatus(
+    lastProcessedRun.status,
+  )} - ${formatDate(lastProcessedRun.updatedAt) ?? "missing date"}`;
+}
+
+function formatLastSuccess(processingStatus: AdminProcessingStatus) {
+  const latestSucceededRun = processingStatus.workerActivity.latestSucceededRun;
+  if (!latestSucceededRun) {
+    return "No successful run yet";
+  }
+
+  return `${latestSucceededRun.analysisId.slice(0, 8)} - ${
+    formatDate(latestSucceededRun.updatedAt) ?? "missing date"
+  }`;
 }
 
 function TranscriptPanel({ segments }: { segments: AdminTranscriptSegment[] }) {

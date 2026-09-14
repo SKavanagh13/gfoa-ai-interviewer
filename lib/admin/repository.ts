@@ -265,7 +265,7 @@ export class AdminRepository {
     const { data, error } = await this.supabase
       .from("analysis_runs")
       .select(
-        "analysis_id,status,analysis_model,analysis_prompt_version,output_specification_version,structured_schema_version,estimated_input_tokens,estimated_output_tokens,estimated_analysis_cost_usd,error_message,created_at",
+        "analysis_id,status,analysis_model,analysis_prompt_version,output_specification_version,structured_schema_version,estimated_input_tokens,estimated_output_tokens,estimated_analysis_cost_usd,error_message,created_at,updated_at",
       )
       .eq("interview_id", interviewId)
       .order("created_at", { ascending: false });
@@ -612,6 +612,7 @@ function mapAnalysisRunSummary(
     | "estimated_analysis_cost_usd"
     | "error_message"
     | "created_at"
+    | "updated_at"
   >,
 ): AdminAnalysisRunSummary {
   return {
@@ -626,6 +627,7 @@ function mapAnalysisRunSummary(
     estimatedAnalysisCostUsd: nullableNumeric(run.estimated_analysis_cost_usd),
     errorMessage: run.error_message,
     createdAt: run.created_at,
+    updatedAt: run.updated_at,
   };
 }
 

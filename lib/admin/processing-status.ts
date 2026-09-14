@@ -5,6 +5,15 @@ export type AdminProcessingStatus = {
   latestAnalysisRun: AdminAnalysisRunSummary | null;
   nextStep: string;
   tone: "attention" | "neutral" | "success";
+  workerActivity: AdminWorkerActivity;
+};
+
+export type AdminWorkerActivity = {
+  analysisRunCount: number;
+  pendingRun: AdminAnalysisRunSummary | null;
+  lastProcessedRun: AdminAnalysisRunSummary | null;
+  latestSucceededRun: AdminAnalysisRunSummary | null;
+  latestFailedRun: AdminAnalysisRunSummary | null;
 };
 
 type ProcessingStatusInput = Pick<
@@ -22,6 +31,7 @@ type ProcessingStatusInput = Pick<
 export function summarizeAdminProcessingStatus(
   detail: ProcessingStatusInput,
 ): AdminProcessingStatus {
+  const workerActivity = summarizeAdminWorkerActivity(detail.analysisRuns);
   const latestAnalysisRun = findLatestAnalysisRun(detail.analysisRuns);
 
   if (detail.technicalError) {
@@ -30,6 +40,7 @@ export function summarizeAdminProcessingStatus(
       latestAnalysisRun,
       nextStep: "Review the technical error before queueing another analysis run.",
       tone: "attention",
+      workerActivity,
     };
   }
 
@@ -39,6 +50,7 @@ export function summarizeAdminProcessingStatus(
       latestAnalysisRun,
       nextStep: "Resolve transcript processing before this interview can be analyzed.",
       tone: "attention",
+      workerActivity,
     };
   }
 
@@ -48,6 +60,7 @@ export function summarizeAdminProcessingStatus(
       latestAnalysisRun,
       nextStep: "Wait for browser and sideband connections to close and transcript stabilization to finish.",
       tone: "neutral",
+      workerActivity,
     };
   }
 
@@ -57,6 +70,7 @@ export function summarizeAdminProcessingStatus(
       latestAnalysisRun,
       nextStep: "Wait for the transcript to become stable before analysis is queued.",
       tone: "neutral",
+      workerActivity,
     };
   }
 
@@ -66,6 +80,7 @@ export function summarizeAdminProcessingStatus(
       latestAnalysisRun,
       nextStep: "No analysis is expected unless the eligibility decision is rerun with sufficient transcript evidence.",
       tone: "neutral",
+      workerActivity,
     };
   }
 
@@ -75,6 +90,7 @@ export function summarizeAdminProcessingStatus(
       latestAnalysisRun,
       nextStep: "Queue analysis or wait for the analysis worker to pick up the stable transcript.",
       tone: "neutral",
+      workerActivity,
     };
   }
 
@@ -84,6 +100,7 @@ export function summarizeAdminProcessingStatus(
       latestAnalysisRun,
       nextStep: "Wait for the analysis worker to process the pending run.",
       tone: "neutral",
+      workerActivity,
     };
   }
 
@@ -93,6 +110,7 @@ export function summarizeAdminProcessingStatus(
       latestAnalysisRun,
       nextStep: "Review the analysis error, then queue a rerun after fixing the cause.",
       tone: "attention",
+      workerActivity,
     };
   }
 
@@ -101,18 +119,39 @@ export function summarizeAdminProcessingStatus(
     latestAnalysisRun,
     nextStep: "Review the selected analysis, objective evidence, quotes, and transcript segments.",
     tone: "success",
+    workerActivity,
+  };
+}
+
+export function summarizeAdminWorkerActivity(
+  analysisRuns: readonly AdminAnalysisRunSummary[],
+): AdminWorkerActivity {
+  const newestRuns = sortAnalysisRuns(analysisRuns);
+  const processedRuns = newestRuns.filter((run) => run.status !== "pending");
+
+  return {
+    analysisRunCount: analysisRuns.length,
+    pendingRun: newestRuns.find((run) => run.status === "pending") ?? null,
+    lastProcessedRun: processedRuns[0] ?? null,
+    latestSucceededRun:
+      newestRuns.find((run) => run.status === "succeeded") ?? null,
+    latestFailedRun: newestRuns.find((run) => run.status === "failed") ?? null,
   };
 }
 
 function findLatestAnalysisRun(analysisRuns: AdminAnalysisRunSummary[]) {
-  return (
-    analysisRuns
-      .slice()
-      .sort(
-        (left, right) =>
-          new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
-      )[0] ?? null
-  );
+  return sortAnalysisRuns(analysisRuns)[0] ?? null;
+}
+
+function sortAnalysisRuns(
+  analysisRuns: readonly AdminAnalysisRunSummary[],
+): AdminAnalysisRunSummary[] {
+  return analysisRuns
+    .slice()
+    .sort(
+      (left, right) =>
+        new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+    );
 }
 
 function isLiveOrEnding(lifecycleStatus: string) {

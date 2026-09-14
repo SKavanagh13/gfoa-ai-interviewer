@@ -84,6 +84,7 @@ export type AdminAnalysisRunSummary = {
   estimatedAnalysisCostUsd: string | null;
   errorMessage: string | null;
   createdAt: string;
+  updatedAt: string;
 };
 
 export type AdminObjectiveEvidence = {

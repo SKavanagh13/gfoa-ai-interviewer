@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { summarizeAdminProcessingStatus } from "@/lib/admin/processing-status";
+import {
+  summarizeAdminProcessingStatus,
+  summarizeAdminWorkerActivity,
+} from "@/lib/admin/processing-status";
 import type { AdminAnalysisRunSummary, AdminInterviewDetail } from "@/lib/admin/types";
 
 describe("Wave 6 admin processing status", () => {
@@ -66,6 +69,36 @@ describe("Wave 6 admin processing status", () => {
     ).toMatchObject({
       headline: "Ready for review",
       tone: "success",
+      workerActivity: {
+        analysisRunCount: 1,
+        latestSucceededRun: {
+          analysisId: "succeeded",
+        },
+      },
+    });
+  });
+
+  it("summarizes pending queue state and prior worker results", () => {
+    expect(
+      summarizeAdminWorkerActivity([
+        run("failed-older", "failed", "2026-09-13T10:00:00.000Z"),
+        run("pending-newer", "pending", "2026-09-13T12:00:00.000Z"),
+        run("succeeded-middle", "succeeded", "2026-09-13T11:00:00.000Z"),
+      ]),
+    ).toMatchObject({
+      analysisRunCount: 3,
+      pendingRun: {
+        analysisId: "pending-newer",
+      },
+      lastProcessedRun: {
+        analysisId: "succeeded-middle",
+      },
+      latestSucceededRun: {
+        analysisId: "succeeded-middle",
+      },
+      latestFailedRun: {
+        analysisId: "failed-older",
+      },
     });
   });
 });
@@ -128,5 +161,6 @@ function run(
     outputSpecificationVersion: null,
     status,
     structuredSchemaVersion: null,
+    updatedAt: createdAt,
   };
 }

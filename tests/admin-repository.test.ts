@@ -26,6 +26,7 @@ function run(
     estimatedAnalysisCostUsd: null,
     errorMessage: null,
     createdAt,
+    updatedAt: createdAt,
   };
 }
 

@@ -2,6 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { rerunAnalysis, setNegativeReactionFlag } from "@/app/admin/actions";
 import { requireStaffOrAdmin } from "@/lib/admin/auth";
+import {
+  summarizeAdminProcessingStatus,
+  type AdminProcessingStatus,
+} from "@/lib/admin/processing-status";
 import { AdminRepository } from "@/lib/admin/repository";
 import {
   formatAdminStructuredFieldLabel,
@@ -67,6 +71,8 @@ export default async function AdminInterviewPage({
           Back
         </Link>
       </div>
+
+      <ProcessingStatusPanel detail={detail} />
 
       <section className="admin-grid">
         <RecordPanel title="Lifecycle">
@@ -243,6 +249,54 @@ export default async function AdminInterviewPage({
   );
 }
 
+function ProcessingStatusPanel({ detail }: { detail: AdminInterviewDetail }) {
+  const processingStatus = summarizeAdminProcessingStatus(detail);
+
+  return (
+    <section className="panel stack processing-status-panel">
+      <div className="split-row">
+        <div>
+          <h2>Processing Status</h2>
+          <p className="muted">{processingStatus.nextStep}</p>
+        </div>
+        <span className={`status-pill status-pill-${processingStatus.tone}`}>
+          {processingStatus.headline}
+        </span>
+      </div>
+      <div className="processing-status-grid">
+        <Definition label="Lifecycle" value={formatStatus(detail.lifecycleStatus)} />
+        <Definition label="Transcript" value={formatStatus(detail.transcriptStatus)} />
+        <Definition
+          label="Eligibility"
+          value={formatStatus(detail.analysisEligibility)}
+        />
+        <Definition
+          label="Browser connection"
+          value={formatStatus(detail.browserConnectionStatus)}
+        />
+        <Definition
+          label="Sideband connection"
+          value={formatStatus(detail.sidebandConnectionStatus)}
+        />
+        <Definition
+          label="Latest analysis"
+          value={formatLatestAnalysis(processingStatus)}
+        />
+        <Definition label="Technical error" value={detail.technicalError} />
+        <Definition
+          label="Transcript error"
+          value={detail.transcriptProcessingError}
+        />
+      </div>
+      {processingStatus.latestAnalysisRun?.errorMessage ? (
+        <p className="form-error">
+          Latest analysis error: {processingStatus.latestAnalysisRun.errorMessage}
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
 function AnalysisHistory({ detail }: { detail: AdminInterviewDetail }) {
   return (
     <section className="panel stack">
@@ -366,6 +420,17 @@ function SelectedAnalysis({ run }: { run: AdminAnalysisRunDetail | null }) {
       </div>
     </section>
   );
+}
+
+function formatLatestAnalysis(processingStatus: AdminProcessingStatus) {
+  const latestAnalysisRun = processingStatus.latestAnalysisRun;
+  if (!latestAnalysisRun) {
+    return "Missing";
+  }
+
+  return `${latestAnalysisRun.analysisId.slice(0, 8)} - ${formatStatus(
+    latestAnalysisRun.status,
+  )} - ${formatDate(latestAnalysisRun.createdAt) ?? "Missing date"}`;
 }
 
 function TranscriptPanel({ segments }: { segments: AdminTranscriptSegment[] }) {

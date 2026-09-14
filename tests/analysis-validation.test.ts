@@ -214,6 +214,31 @@ describe("Wave 5 post-interview output validation", () => {
     );
   });
 
+  it("normalizes known cross-field aliases for coded structured values", () => {
+    const output = validOutput();
+    output.objective_results[3].structured_fields = [
+      {
+        field_name: "expected_duration",
+        value: "likely_to_persist",
+        value_status: "supported",
+      },
+    ];
+
+    const result = validatePostInterviewOutput(output, [segment({})]);
+
+    expect(result).toMatchObject({ ok: true });
+    if (!result.ok) {
+      return;
+    }
+    expect(result.output.objective_results[3].structured_fields).toEqual([
+      {
+        field_name: "expected_duration",
+        value: "continuing",
+        value_status: "supported",
+      },
+    ]);
+  });
+
   it("caps representative quote proposals at the allowed maximum", () => {
     const output = validOutput();
     output.representative_quotes = [

@@ -17,6 +17,12 @@ import type {
 } from "@/lib/analysis/types";
 import type { CanonicalTranscriptSegment } from "@/lib/transcript/types";
 
+const CODED_FIELD_VALUE_ALIASES: Record<string, Record<string, string>> = {
+  expected_duration: {
+    likely_to_persist: "continuing",
+  },
+};
+
 export type AnalysisValidationResult =
   | { ok: true; output: PostInterviewOutput }
   | { ok: false; issues: string[]; errorMessage: string };
@@ -313,7 +319,11 @@ function normalizeStructuredField(field: StructuredField): StructuredField {
     return field;
   }
 
-  const normalizedValue = normalizeAllowedValue(field.value, allowedValues);
+  const normalizedValue = normalizeAllowedValue(
+    field.field_name,
+    field.value,
+    allowedValues,
+  );
 
   if (!normalizedValue) {
     return field;
@@ -326,10 +336,16 @@ function normalizeStructuredField(field: StructuredField): StructuredField {
 }
 
 function normalizeAllowedValue(
+  fieldName: string,
   value: string,
   allowedValues: readonly string[],
 ): string | null {
   const normalized = normalizeMachineToken(value);
+  const aliasedValue = CODED_FIELD_VALUE_ALIASES[fieldName]?.[normalized];
+
+  if (aliasedValue && allowedValues.includes(aliasedValue)) {
+    return aliasedValue;
+  }
 
   return (
     allowedValues.find(

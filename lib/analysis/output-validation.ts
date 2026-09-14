@@ -79,6 +79,9 @@ export function normalizePostInterviewOutput(
             : result.structured_fields,
         }))
       : output.objective_results,
+    representative_quotes: Array.isArray(output.representative_quotes)
+      ? output.representative_quotes.slice(0, 3)
+      : output.representative_quotes,
   };
 }
 

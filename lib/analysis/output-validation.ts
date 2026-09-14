@@ -35,7 +35,7 @@ export function validatePostInterviewOutput(
     return failure(["Output must be an object."]);
   }
 
-  const output = value as PostInterviewOutput;
+  const output = normalizePostInterviewOutput(value as PostInterviewOutput);
   validateOverview(output.overview, issues);
   validateObjectiveResults(output.objective_results, segments, issues);
   validateCrossCuttingThemes(output.cross_cutting_themes, segments, issues);
@@ -62,6 +62,24 @@ export function validatePostInterviewOutput(
   }
 
   return { ok: true, output };
+}
+
+export function normalizePostInterviewOutput(
+  output: PostInterviewOutput,
+): PostInterviewOutput {
+  return {
+    ...output,
+    objective_results: Array.isArray(output.objective_results)
+      ? output.objective_results.map((result) => ({
+          ...result,
+          structured_fields: Array.isArray(result.structured_fields)
+            ? result.structured_fields.map((field) =>
+                normalizeStructuredField(field),
+              )
+            : result.structured_fields,
+        }))
+      : output.objective_results,
+  };
 }
 
 export function validateEligibilityModelResult(
@@ -280,6 +298,45 @@ function validateStructuredFields(
       }
     }
   }
+}
+
+function normalizeStructuredField(field: StructuredField): StructuredField {
+  if (!isRecord(field)) {
+    return field;
+  }
+
+  const allowedValues = CODED_FIELD_VALUE_OPTIONS[field.field_name];
+  if (!allowedValues || typeof field.value !== "string") {
+    return field;
+  }
+
+  const normalizedValue = normalizeAllowedValue(field.value, allowedValues);
+
+  if (!normalizedValue) {
+    return field;
+  }
+
+  return {
+    ...field,
+    value: normalizedValue,
+  };
+}
+
+function normalizeAllowedValue(
+  value: string,
+  allowedValues: readonly string[],
+): string | null {
+  const normalized = normalizeMachineToken(value);
+
+  return (
+    allowedValues.find(
+      (allowedValue) => normalizeMachineToken(allowedValue) === normalized,
+    ) ?? null
+  );
+}
+
+function normalizeMachineToken(value: string): string {
+  return value.trim().toLowerCase().replace(/[\s-]+/gu, "_");
 }
 
 function validateCrossCuttingThemes(

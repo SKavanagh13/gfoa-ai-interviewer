@@ -1131,6 +1131,31 @@ input:focus-visible {
   text-transform: uppercase;
 }
 
+.processing-status-panel {
+  border-color: #b9ded1;
+}
+
+.processing-status-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.status-pill-attention {
+  border-color: #f1b9b9;
+  color: #9f1d1d;
+}
+
+.status-pill-neutral {
+  border-color: var(--border);
+  color: var(--muted);
+}
+
+.status-pill-success {
+  border-color: #b9ded1;
+  color: var(--accent);
+}
+
 .text-link {
   color: var(--accent);
   font-weight: 700;
@@ -1247,6 +1272,10 @@ blockquote {
   }
 
   .admin-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .processing-status-grid {
     grid-template-columns: 1fr;
   }
 

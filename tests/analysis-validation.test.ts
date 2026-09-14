@@ -214,6 +214,50 @@ describe("Wave 5 post-interview output validation", () => {
     );
   });
 
+  it("caps representative quote proposals at the allowed maximum", () => {
+    const output = validOutput();
+    output.representative_quotes = [
+      {
+        quote_text: "The budget timeline changed quickly",
+        related_objective: "recent_change",
+        reason_selected: "Shows the recent change.",
+        proposed_segment_ids: ["segment-1"],
+      },
+      {
+        quote_text: "it affects how we explain tradeoffs",
+        related_objective: "theory_vs_practice",
+        reason_selected: "Shows the practical tradeoff.",
+        proposed_segment_ids: ["segment-1"],
+      },
+      {
+        quote_text: "departments",
+        related_objective: "unmet_need",
+        reason_selected: "Shows who is affected.",
+        proposed_segment_ids: ["segment-1"],
+      },
+      {
+        quote_text: "ignored extra quote",
+        related_objective: null,
+        reason_selected: "Exceeds the proposal cap.",
+        proposed_segment_ids: ["segment-1"],
+      },
+    ];
+
+    const result = validatePostInterviewOutput(output, [segment({})]);
+
+    expect(result).toMatchObject({ ok: true });
+    if (!result.ok) {
+      return;
+    }
+    expect(result.output.representative_quotes).toHaveLength(3);
+    expect(result.output.representative_quotes.map((quote) => quote.quote_text)).toEqual([
+      "The budget timeline changed quickly",
+      "it affects how we explain tradeoffs",
+      "departments",
+    ]);
+    expect(output.representative_quotes).toHaveLength(4);
+  });
+
   it("requires cited segment IDs to exist and be final", () => {
     const output = validOutput();
     output.objective_results[0].supporting_segment_ids = ["missing-segment"];

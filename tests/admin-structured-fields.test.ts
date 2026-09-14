@@ -34,6 +34,27 @@ describe("Wave 6 admin structured field display", () => {
     expect(formatAdminStructuredFieldValue(fields[1])).toBe("Not Discussed");
   });
 
+  it("formats coded values and known acronyms as readable labels", () => {
+    const fields = parseAdminStructuredFields([
+      {
+        field_name: "potential_gfoa_role",
+        value: "likely_to_persist",
+        value_status: "supported",
+      },
+      {
+        field_name: "evidence_basis",
+        value: "direct_experience",
+        value_status: "supported",
+      },
+    ]);
+
+    expect(formatAdminStructuredFieldLabel(fields[0].fieldName)).toBe(
+      "Potential GFOA Role",
+    );
+    expect(formatAdminStructuredFieldValue(fields[0])).toBe("Likely to persist");
+    expect(formatAdminStructuredFieldValue(fields[1])).toBe("Direct experience");
+  });
+
   it("ignores malformed JSON entries instead of rendering raw blobs", () => {
     expect(
       parseAdminStructuredFields([

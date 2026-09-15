@@ -31,6 +31,12 @@ export type FinalTranscriptSegment = {
   endTimeMs?: number | null;
 };
 
+export type StaleLiveInterview = {
+  interviewId: string;
+  realtimeCallId: string | null;
+  startedAt: string;
+};
+
 export type InterviewSessionRepositoryOptions = {
   analysisModel?: string;
 };
@@ -181,6 +187,60 @@ export class InterviewSessionRepository {
       cost_category: "technical_failure",
       ended_at: new Date().toISOString(),
     });
+  }
+
+  async loadStaleLiveInterviews(input: {
+    cutoffIso: string;
+    limit: number;
+  }): Promise<StaleLiveInterview[]> {
+    const { data, error } = await this.supabase
+      .from("interviews")
+      .select("interview_id, realtime_call_id, started_at")
+      .is("end_disposition", null)
+      .neq("lifecycle_status", "failed")
+      .in("lifecycle_status", ["active", "ending"])
+      .not("started_at", "is", null)
+      .lte("started_at", input.cutoffIso)
+      .order("started_at", { ascending: true })
+      .limit(input.limit);
+
+    if (error) {
+      throw new Error(`Failed to load stale live interviews: ${error.message}`);
+    }
+
+    return data.map((interview) => ({
+      interviewId: interview.interview_id,
+      realtimeCallId: interview.realtime_call_id,
+      startedAt: interview.started_at ?? input.cutoffIso,
+    }));
+  }
+
+  async markStaleLiveInterviewFinalized(
+    interviewId: string,
+    technicalError: string,
+  ): Promise<void> {
+    const endedAt = new Date().toISOString();
+    const { error } = await this.supabase
+      .from("interviews")
+      .update({
+        lifecycle_status: "ended",
+        end_disposition: "technical_failure",
+        browser_connection_status: "closed",
+        sideband_connection_status: "closed",
+        technical_error: technicalError,
+        ended_at: endedAt,
+        transcript_status: "stabilizing",
+        cost_category: "technical_failure",
+      })
+      .eq("interview_id", interviewId)
+      .is("end_disposition", null)
+      .neq("lifecycle_status", "failed");
+
+    if (error) {
+      throw new Error(
+        `Failed to finalize stale live interview: ${error.message}`,
+      );
+    }
   }
 
   async markParticipantEnded(interviewId: string): Promise<void> {

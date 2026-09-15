@@ -49,4 +49,87 @@ describe("interview capacity guard", () => {
       ["lifecycle_status.in.(active,ending),realtime_call_id.not.is.null"],
     ]);
   });
+
+  it("loads only stale active or ending interviews for worker finalization", async () => {
+    const calls: Array<{ method: string; args: unknown[] }> = [];
+    const client = {
+      from(table: string) {
+        expect(table).toBe("interviews");
+        return {
+          select(...args: unknown[]) {
+            calls.push({ method: "select", args });
+            return this;
+          },
+          is(...args: unknown[]) {
+            calls.push({ method: "is", args });
+            return this;
+          },
+          neq(...args: unknown[]) {
+            calls.push({ method: "neq", args });
+            return this;
+          },
+          in(...args: unknown[]) {
+            calls.push({ method: "in", args });
+            return this;
+          },
+          not(...args: unknown[]) {
+            calls.push({ method: "not", args });
+            return this;
+          },
+          lte(...args: unknown[]) {
+            calls.push({ method: "lte", args });
+            return this;
+          },
+          order(...args: unknown[]) {
+            calls.push({ method: "order", args });
+            return this;
+          },
+          async limit(...args: unknown[]) {
+            calls.push({ method: "limit", args });
+            return {
+              data: [
+                {
+                  interview_id: "interview-1",
+                  realtime_call_id: "rtc_123",
+                  started_at: "2026-09-14T00:00:00.000Z",
+                },
+              ],
+              error: null,
+            };
+          },
+        };
+      },
+    };
+    const repository = new InterviewSessionRepository(
+      client as never,
+      "participant-secret",
+      "gpt-realtime",
+    );
+
+    await expect(
+      repository.loadStaleLiveInterviews({
+        cutoffIso: "2026-09-14T00:10:00.000Z",
+        limit: 10,
+      }),
+    ).resolves.toEqual([
+      {
+        interviewId: "interview-1",
+        realtimeCallId: "rtc_123",
+        startedAt: "2026-09-14T00:00:00.000Z",
+      },
+    ]);
+    expect(calls).toEqual([
+      {
+        method: "select",
+        args: ["interview_id, realtime_call_id, started_at"],
+      },
+      { method: "is", args: ["end_disposition", null] },
+      { method: "neq", args: ["lifecycle_status", "failed"] },
+      { method: "in", args: ["lifecycle_status", ["active", "ending"]] },
+      { method: "not", args: ["started_at", "is", null] },
+      { method: "lte", args: ["started_at", "2026-09-14T00:10:00.000Z"] },
+      { method: "order", args: ["started_at", { ascending: true }] },
+      { method: "limit", args: [10] },
+    ]);
+  });
 });

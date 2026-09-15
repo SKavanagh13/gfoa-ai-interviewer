@@ -52,12 +52,50 @@ describe("Live session participant cues", () => {
     });
   });
 
-  it("keeps finalization pending when participant end is not accepted", async () => {
+  it("retries server errors before keeping finalization pending", async () => {
     const fetchImpl = vi.fn(async () => new Response(null, { status: 500 }));
+    const wait = vi.fn(async () => {});
 
     await expect(
-      finalizeParticipantEnd("interview-1", fetchImpl as never),
+      finalizeParticipantEnd("interview-1", fetchImpl as never, { wait }),
     ).rejects.toThrow("The interview could not be finalized.");
+    expect(fetchImpl).toHaveBeenCalledTimes(3);
+    expect(wait).toHaveBeenCalledWith(750);
+    expect(wait).toHaveBeenCalledWith(1500);
+  });
+
+  it("uses sendBeacon as a final fallback for network finalization failures", async () => {
+    const fetchImpl = vi.fn(async () => {
+      throw new TypeError("network failed");
+    });
+    const sendBeacon = vi.fn(() => true);
+
+    await expect(
+      finalizeParticipantEnd("interview-1", fetchImpl as never, {
+        sendBeacon,
+        wait: async () => {},
+      }),
+    ).resolves.toBeUndefined();
+    expect(sendBeacon).toHaveBeenCalledWith(
+      "/api/interview/interview-1/end",
+      expect.any(Blob),
+    );
+  });
+
+  it("does not treat unauthorized participant-end requests as recoverable", async () => {
+    const fetchImpl = vi.fn(async () => new Response(null, { status: 401 }));
+    const wait = vi.fn(async () => {});
+    const sendBeacon = vi.fn(() => true);
+
+    await expect(
+      finalizeParticipantEnd("interview-1", fetchImpl as never, {
+        sendBeacon,
+        wait,
+      }),
+    ).rejects.toThrow("This interview session could not be verified.");
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(wait).not.toHaveBeenCalled();
+    expect(sendBeacon).not.toHaveBeenCalled();
   });
 
   it("attempts participant-end finalization when a live page exits", () => {

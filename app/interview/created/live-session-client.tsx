@@ -41,6 +41,7 @@ type RealtimeStartFailureReason =
 const PREINTERVIEW_GUIDANCE =
   'This is intended to feel like a conversational interview. There are six big questions the interview will cover. It may have follow-up questions on your answers. The interviewer may wait a second or two after you finish speaking so it does not cut you off. It will tell you when all the questions are complete, thank you, and ask you to end the interview. We have asked it to restrain its follow-ups so the conversation can cover each objective. If needed, you can say, "we are done with this question, let\'s move on."';
 const INTERVIEWER_AUDIO_UNMUTE_FALLBACK_MS = 45000;
+const FINALIZE_PARTICIPANT_END_RETRY_DELAYS_MS = [750, 1500];
 
 export function LiveSessionClient({
   interviewId,
@@ -734,17 +735,63 @@ export function liveDescription(
 export async function finalizeParticipantEnd(
   interviewId: string,
   fetchImpl: typeof fetch = fetch,
+  options: {
+    sendBeacon?: typeof navigator.sendBeacon;
+    wait?: (delayMs: number) => Promise<void>;
+  } = {},
 ): Promise<void> {
-  const response = await fetchImpl(`/api/interview/${interviewId}/end`, {
-    method: "POST",
-    keepalive: true,
-  });
+  const url = `/api/interview/${interviewId}/end`;
+  let lastStatus: number | null = null;
+  let lastError: unknown = null;
 
-  if (!response.ok) {
-    throw new Error(
-      "The interview could not be finalized. Please try ending it again.",
-    );
+  for (const delayMs of [0, ...FINALIZE_PARTICIPANT_END_RETRY_DELAYS_MS]) {
+    if (delayMs > 0) {
+      await (options.wait ?? wait)(delayMs);
+    }
+
+    try {
+      const response = await fetchImpl(url, {
+        method: "POST",
+        keepalive: true,
+      });
+
+      if (response.ok) {
+        return;
+      }
+
+      lastStatus = response.status;
+      if (response.status >= 400 && response.status < 500) {
+        break;
+      }
+    } catch (caught) {
+      lastError = caught;
+    }
   }
+
+  if (!lastStatus && options.sendBeacon?.(url, new Blob([], { type: "text/plain" }))) {
+    return;
+  }
+
+  throw new Error(finalizeParticipantEndFailureMessage(lastStatus, lastError));
+}
+
+function finalizeParticipantEndFailureMessage(
+  status: number | null,
+  error: unknown,
+): string {
+  if (status === 401 || status === 403) {
+    return "This interview session could not be verified. Please close this browser window.";
+  }
+
+  return error instanceof Error && error.name === "AbortError"
+    ? "The interview is taking longer than expected to finalize. Please try ending it again."
+    : "The interview could not be finalized. Please try ending it again.";
+}
+
+function wait(delayMs: number): Promise<void> {
+  return new Promise((resolve) => {
+    globalThis.setTimeout(resolve, delayMs);
+  });
 }
 
 export function shouldFinalizeParticipantEndOnPageExit(

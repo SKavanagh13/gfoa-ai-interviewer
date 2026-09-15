@@ -91,6 +91,7 @@ export async function runSidebandController(
     let elapsedUpdateTimer: ReturnType<typeof setInterval> | null = null;
     let nearLimitTimer: ReturnType<typeof setTimeout> | null = null;
     let targetConsentTimer: ReturnType<typeof setTimeout> | null = null;
+    let eventHandling = Promise.resolve();
     const ws = new WebSocketImplementation(url, {
       headers: {
         Authorization: `Bearer ${env.OPENAI_API_KEY}`,
@@ -140,7 +141,8 @@ export async function runSidebandController(
         return;
       }
 
-      void handleEvent(event).catch(rejectOnce);
+      eventHandling = eventHandling.then(() => handleEvent(event));
+      void eventHandling.catch(rejectOnce);
     });
 
     ws.on("error", (error) => {
@@ -151,7 +153,10 @@ export async function runSidebandController(
       clearTimeout(connectionTimer);
       clearTimeout(hardCapTimer);
       clearTimingTimers();
-      void finalizeTranscript().then(resolveOnce).catch(rejectOnce);
+      void eventHandling
+        .then(finalizeTranscript)
+        .then(resolveOnce)
+        .catch(rejectOnce);
     });
 
     async function handleEvent(event: unknown) {

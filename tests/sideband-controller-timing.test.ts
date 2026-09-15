@@ -233,6 +233,79 @@ describe("sideband controller timing signals", () => {
     expect(repository.markTranscriptFailed).not.toHaveBeenCalled();
   });
 
+  it("persists transcript events sequentially before stabilizing", async () => {
+    let releaseFirstInsert!: () => void;
+    const firstInsert = new Promise<void>((resolve) => {
+      releaseFirstInsert = resolve;
+    });
+    const repository = {
+      markSidebandConnected: vi.fn(async () => {}),
+      insertFinalTranscriptSegment: vi
+        .fn()
+        .mockImplementationOnce(async () => {
+          await firstInsert;
+        })
+        .mockImplementationOnce(async () => {}),
+      recordUsage: vi.fn(async () => {}),
+      markParticipantEnded: vi.fn(async () => {}),
+      markSidebandClosed: vi.fn(async () => {}),
+      markTranscriptStable: vi.fn(async () => {}),
+      markTranscriptFailed: vi.fn(async () => {}),
+      markTechnicalFailure: vi.fn(async () => {}),
+      hasContinuationConsent: vi.fn(async () => true),
+    };
+    const controllerPromise = runSidebandController({
+      interviewId: "interview-1",
+      callId: "rtc_123",
+      repository: repository as never,
+      WebSocketCtor: FakeWebSocket as never,
+    });
+    const ws = FakeWebSocket.instances[0];
+
+    ws.emit("open");
+    ws.emit(
+      "message",
+      JSON.stringify({
+        type: "conversation.item.input_audio_transcription.completed",
+        event_id: "event-1",
+        transcript: "First participant segment.",
+      }) as never,
+    );
+    ws.emit(
+      "message",
+      JSON.stringify({
+        type: "conversation.item.input_audio_transcription.completed",
+        event_id: "event-2",
+        transcript: "Second participant segment.",
+      }) as never,
+    );
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(repository.insertFinalTranscriptSegment).toHaveBeenCalledTimes(1);
+    ws.close();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(repository.markTranscriptStable).not.toHaveBeenCalled();
+
+    releaseFirstInsert();
+    await controllerPromise;
+
+    expect(repository.insertFinalTranscriptSegment).toHaveBeenCalledTimes(2);
+    expect(repository.insertFinalTranscriptSegment).toHaveBeenNthCalledWith(
+      1,
+      "interview-1",
+      expect.objectContaining({ providerEventId: "event-1" }),
+    );
+    expect(repository.insertFinalTranscriptSegment).toHaveBeenNthCalledWith(
+      2,
+      "interview-1",
+      expect.objectContaining({ providerEventId: "event-2" }),
+    );
+    expect(repository.markTranscriptStable).toHaveBeenCalledWith(
+      "interview-1",
+      5000,
+    );
+  });
+
   it("marks completed from the finalized assistant closing signal", async () => {
     const repository = {
       markSidebandConnected: vi.fn(async () => {}),

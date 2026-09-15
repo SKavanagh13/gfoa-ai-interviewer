@@ -198,7 +198,10 @@ export function LiveSessionClient({
       });
       dataChannel.addEventListener("message", handleRealtimeDataChannelMessage);
       peerConnection.onconnectionstatechange = () => {
-        if (peerConnection.connectionState === "connected") {
+        if (
+          peerConnection.connectionState === "connected" &&
+          shouldAcceptPeerConnectionConnected(stateRef.current)
+        ) {
           setState("connected");
           void fetch(`/api/interview/${interviewId}/browser-connected`, {
             method: "POST",
@@ -206,8 +209,10 @@ export function LiveSessionClient({
         }
 
         if (
-          peerConnection.connectionState === "failed" ||
-          peerConnection.connectionState === "disconnected"
+          shouldReportPeerConnectionFailure(
+            stateRef.current,
+            peerConnection.connectionState,
+          )
         ) {
           setError("The connection dropped. Please reconnect or end for now.");
           setState("failed");
@@ -248,6 +253,7 @@ export function LiveSessionClient({
       return;
     }
 
+    stateRef.current = "ending";
     setState("ending");
     teardownBrowserMedia();
 
@@ -260,6 +266,7 @@ export function LiveSessionClient({
 
     try {
       await finalizeParticipantEnd(interviewId);
+      stateRef.current = "ended";
       setState("ended");
     } catch (caught) {
       setError(
@@ -337,8 +344,12 @@ export function LiveSessionClient({
   }
 
   function teardownBrowserMedia() {
-    peerConnectionRef.current?.close();
-    peerConnectionRef.current = null;
+    const peerConnection = peerConnectionRef.current;
+    if (peerConnection) {
+      peerConnection.onconnectionstatechange = null;
+      peerConnection.close();
+      peerConnectionRef.current = null;
+    }
     localStreamRef.current?.getTracks().forEach((track) => track.stop());
     localStreamRef.current = null;
     setIsMicrophoneEnabled(false);
@@ -805,6 +816,21 @@ export function shouldFinalizeParticipantEndOnPageExit(
     "ending",
     "failed",
   ].includes(state);
+}
+
+export function shouldAcceptPeerConnectionConnected(state: LiveState): boolean {
+  return state !== "ending" && state !== "ended";
+}
+
+export function shouldReportPeerConnectionFailure(
+  state: LiveState,
+  connectionState: RTCPeerConnectionState,
+): boolean {
+  if (state === "ending" || state === "ended") {
+    return false;
+  }
+
+  return connectionState === "failed" || connectionState === "disconnected";
 }
 
 async function readRealtimeStartFailure(

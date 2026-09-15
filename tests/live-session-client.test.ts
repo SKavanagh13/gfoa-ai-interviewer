@@ -4,7 +4,9 @@ import {
   liveDescription,
   realtimeStartFailureMessage,
   liveVisualState,
+  shouldAcceptPeerConnectionConnected,
   shouldFinalizeParticipantEndOnPageExit,
+  shouldReportPeerConnectionFailure,
 } from "@/app/interview/created/live-session-client";
 
 describe("Live session participant cues", () => {
@@ -104,5 +106,22 @@ describe("Live session participant cues", () => {
     expect(shouldFinalizeParticipantEndOnPageExit("failed")).toBe(true);
     expect(shouldFinalizeParticipantEndOnPageExit("ended")).toBe(false);
     expect(shouldFinalizeParticipantEndOnPageExit("mic_ready")).toBe(false);
+  });
+
+  it("does not show connection-drop errors for intentional end teardown", () => {
+    expect(shouldReportPeerConnectionFailure("connected", "failed")).toBe(true);
+    expect(shouldReportPeerConnectionFailure("connected", "disconnected")).toBe(
+      true,
+    );
+    expect(shouldReportPeerConnectionFailure("ending", "disconnected")).toBe(
+      false,
+    );
+    expect(shouldReportPeerConnectionFailure("ended", "failed")).toBe(false);
+  });
+
+  it("ignores late peer connected events after the end flow starts", () => {
+    expect(shouldAcceptPeerConnectionConnected("connecting")).toBe(true);
+    expect(shouldAcceptPeerConnectionConnected("ending")).toBe(false);
+    expect(shouldAcceptPeerConnectionConnected("ended")).toBe(false);
   });
 });

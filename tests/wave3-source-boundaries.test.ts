@@ -213,6 +213,7 @@ describe("Wave 3 route and runtime boundaries", () => {
     );
     expect(client).toContain("Thank you for participating.");
     expect(client).toContain("You may close this browser window.");
+    expect(client).toContain("end the interview automatically");
   });
 
   it("shows a passive red or green microphone status on the live screen", () => {

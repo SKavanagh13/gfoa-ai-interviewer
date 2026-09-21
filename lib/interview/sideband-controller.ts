@@ -27,6 +27,7 @@ export type TimingSignalInput = {
 
 const TIMING_UPDATE_INTERVAL_MS = 60_000;
 const NEAR_LIMIT_LEAD_SECONDS = 120;
+const COMPLETED_CLOSING_HANGUP_FALLBACK_MS = 5_000;
 
 export function buildTimingConversationItem(input: TimingSignalInput) {
   const remainingToTargetSeconds = Math.max(
@@ -91,6 +92,9 @@ export async function runSidebandController(
     let elapsedUpdateTimer: ReturnType<typeof setInterval> | null = null;
     let nearLimitTimer: ReturnType<typeof setTimeout> | null = null;
     let targetConsentTimer: ReturnType<typeof setTimeout> | null = null;
+    let completedClosingHangupTimer: ReturnType<typeof setTimeout> | null = null;
+    let completedClosingAwaitingAudioStop = false;
+    let completedClosingHangupStarted = false;
     let eventHandling = Promise.resolve();
     const ws = new WebSocketImplementation(url, {
       headers: {
@@ -153,6 +157,7 @@ export async function runSidebandController(
       clearTimeout(connectionTimer);
       clearTimeout(hardCapTimer);
       clearTimingTimers();
+      clearCompletedClosingHangupTimer();
       void eventHandling
         .then(finalizeTranscript)
         .then(resolveOnce)
@@ -169,7 +174,12 @@ export async function runSidebandController(
         } else if (parsed.kind === "usage") {
           await input.repository.recordUsage(input.interviewId, parsed);
         } else if (parsed.kind === "completedClosing") {
-          await finalizeCompletedInterview();
+          await recordCompletedInterview();
+        } else if (
+          parsed.kind === "outputAudioStopped" &&
+          completedClosingAwaitingAudioStop
+        ) {
+          hangUpCompletedInterview();
         }
       }
     }
@@ -255,12 +265,13 @@ export async function runSidebandController(
       }
     }
 
-    async function finalizeCompletedInterview() {
+    async function recordCompletedInterview() {
       if (settled || intentionalFinalization) {
         return;
       }
 
       intentionalFinalization = true;
+      completedClosingAwaitingAudioStop = true;
 
       try {
         await input.repository.markCompleted(input.interviewId);
@@ -274,8 +285,29 @@ export async function runSidebandController(
           .markTechnicalFailure(input.interviewId, message)
           .catch(() => undefined);
         lifecycleFinalized = true;
-      } finally {
-        void hangUpRealtimeCall(input.callId).finally(() => ws.close());
+      }
+
+      completedClosingHangupTimer = setTimeout(
+        hangUpCompletedInterview,
+        COMPLETED_CLOSING_HANGUP_FALLBACK_MS,
+      );
+    }
+
+    function hangUpCompletedInterview() {
+      if (completedClosingHangupStarted) {
+        return;
+      }
+
+      completedClosingHangupStarted = true;
+      completedClosingAwaitingAudioStop = false;
+      clearCompletedClosingHangupTimer();
+      void hangUpRealtimeCall(input.callId).finally(() => ws.close());
+    }
+
+    function clearCompletedClosingHangupTimer() {
+      if (completedClosingHangupTimer) {
+        clearTimeout(completedClosingHangupTimer);
+        completedClosingHangupTimer = null;
       }
     }
 
@@ -307,6 +339,7 @@ export async function runSidebandController(
         clearTimeout(connectionTimer);
         clearTimeout(hardCapTimer);
         clearTimingTimers();
+        clearCompletedClosingHangupTimer();
         void input.repository.markTechnicalFailure(input.interviewId, error.message);
         reject(error);
       }

@@ -5,6 +5,7 @@ export type SidebandParsedEvent =
   | { kind: "transcript"; segment: FinalTranscriptSegment }
   | { kind: "usage"; inputTokens?: number; outputTokens?: number }
   | { kind: "completedClosing" }
+  | { kind: "outputAudioStopped" }
   | { kind: "sessionEnded" }
   | { kind: "ignore" };
 
@@ -93,6 +94,10 @@ export function parseSidebandEvent(event: RealtimeEvent): SidebandParsedEvent[] 
 
   if (event.type === "session.ended") {
     return [{ kind: "sessionEnded" }];
+  }
+
+  if (event.type === "output_audio_buffer.stopped") {
+    return [{ kind: "outputAudioStopped" }];
   }
 
   return [{ kind: "ignore" }];

@@ -117,7 +117,7 @@ describe("OpenAI Realtime client", () => {
       "After the sixth objective, briefly recap only the participant's answer to that objective",
     );
     expect(payload.instructions).toContain(
-      "Please select End interview to conclude our time together.",
+      "I will now end the interview. Have a great day.",
     );
   });
 

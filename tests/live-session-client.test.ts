@@ -5,6 +5,7 @@ import {
   realtimeStartFailureMessage,
   liveVisualState,
   shouldAcceptPeerConnectionConnected,
+  shouldCompleteAutomaticEnd,
   shouldFinalizeParticipantEndOnPageExit,
   shouldReportPeerConnectionFailure,
 } from "@/app/interview/created/live-session-client";
@@ -123,5 +124,12 @@ describe("Live session participant cues", () => {
     expect(shouldAcceptPeerConnectionConnected("connecting")).toBe(true);
     expect(shouldAcceptPeerConnectionConnected("ending")).toBe(false);
     expect(shouldAcceptPeerConnectionConnected("ended")).toBe(false);
+  });
+
+  it("treats a connection close during automatic ending as completion", () => {
+    expect(shouldCompleteAutomaticEnd("connected", "disconnected")).toBe(false);
+    expect(shouldCompleteAutomaticEnd("ending", "disconnected")).toBe(true);
+    expect(shouldCompleteAutomaticEnd("ending", "closed")).toBe(true);
+    expect(shouldCompleteAutomaticEnd("ended", "closed")).toBe(false);
   });
 });

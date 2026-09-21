@@ -349,6 +349,15 @@ describe("sideband controller timing signals", () => {
         },
       }) as never,
     );
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(repository.markCompleted).toHaveBeenCalledWith("interview-1");
+    expect(hangUpRealtimeCall).not.toHaveBeenCalled();
+
+    ws.emit(
+      "message",
+      JSON.stringify({ type: "output_audio_buffer.stopped" }) as never,
+    );
     await controllerPromise;
 
     expect(repository.insertFinalTranscriptSegment).toHaveBeenCalledWith(
@@ -413,6 +422,11 @@ describe("sideband controller timing signals", () => {
         },
       }) as never,
     );
+    await vi.advanceTimersByTimeAsync(0);
+    ws.emit(
+      "message",
+      JSON.stringify({ type: "output_audio_buffer.stopped" }) as never,
+    );
     await controllerPromise;
 
     expect(repository.markCompleted).toHaveBeenCalledWith("interview-1");
@@ -425,6 +439,61 @@ describe("sideband controller timing signals", () => {
       "interview-1",
       5000,
     );
+  });
+
+  it("uses a bounded hangup fallback when the closing audio-stop event is absent", async () => {
+    const repository = {
+      markSidebandConnected: vi.fn(async () => {}),
+      insertFinalTranscriptSegment: vi.fn(async () => {}),
+      recordUsage: vi.fn(async () => {}),
+      markParticipantEnded: vi.fn(async () => {}),
+      markSidebandClosed: vi.fn(async () => {}),
+      markTranscriptStable: vi.fn(async () => {}),
+      markTranscriptFailed: vi.fn(async () => {}),
+      markTechnicalFailure: vi.fn(async () => {}),
+      markCompleted: vi.fn(async () => {}),
+      hasContinuationConsent: vi.fn(async () => true),
+    };
+    const controllerPromise = runSidebandController({
+      interviewId: "interview-1",
+      callId: "rtc_123",
+      repository: repository as never,
+      WebSocketCtor: FakeWebSocket as never,
+    });
+    const ws = FakeWebSocket.instances[0];
+
+    ws.emit("open");
+    ws.emit(
+      "message",
+      JSON.stringify({
+        type: "response.done",
+        event_id: "evt_complete",
+        response: {
+          status: "completed",
+          output: [
+            {
+              role: "assistant",
+              content: [
+                {
+                  type: "output_audio",
+                  transcript: COMPLETED_INTERVIEW_CLOSING_SENTENCE,
+                },
+              ],
+            },
+          ],
+        },
+      }) as never,
+    );
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(hangUpRealtimeCall).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(5_000);
+    await controllerPromise;
+
+    expect(hangUpRealtimeCall).toHaveBeenCalledWith("rtc_123");
+    expect(repository.markCompleted).toHaveBeenCalledWith("interview-1");
+    expect(repository.markParticipantEnded).not.toHaveBeenCalled();
   });
 
   it("enforces the hard cap through the sideband controller path", async () => {

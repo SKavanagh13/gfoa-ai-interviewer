@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { isCompletedInterviewClosingEvent } from "@/lib/interview/completion-signal";
 import { INITIAL_INTERVIEWER_RESPONSE_INSTRUCTIONS } from "@/lib/interview/live-opening";
 
 type LiveSessionClientProps = {
@@ -39,7 +40,7 @@ type RealtimeStartFailureReason =
   | "realtime_session_failed";
 
 const PREINTERVIEW_GUIDANCE =
-  'This is intended to feel like a conversational interview. There are six big questions the interview will cover. It may have follow-up questions on your answers. The interviewer may wait a second or two after you finish speaking so it does not cut you off. It will tell you when all the questions are complete, thank you, and ask you to end the interview. We have asked it to restrain its follow-ups so the conversation can cover each objective. If needed, you can say, "we are done with this question, let\'s move on."';
+  'This is intended to feel like a conversational interview. There are six big questions the interview will cover. It may have follow-up questions on your answers. The interviewer may wait a second or two after you finish speaking so it does not cut you off. It will tell you when all the questions are complete, thank you, and end the interview automatically. We have asked it to restrain its follow-ups so the conversation can cover each objective. If needed, you can say, "we are done with this question, let\'s move on."';
 const INTERVIEWER_AUDIO_UNMUTE_FALLBACK_MS = 45000;
 const FINALIZE_PARTICIPANT_END_RETRY_DELAYS_MS = [750, 1500];
 
@@ -198,6 +199,16 @@ export function LiveSessionClient({
       });
       dataChannel.addEventListener("message", handleRealtimeDataChannelMessage);
       peerConnection.onconnectionstatechange = () => {
+        if (
+          shouldCompleteAutomaticEnd(
+            stateRef.current,
+            peerConnection.connectionState,
+          )
+        ) {
+          completeAutomaticEnd();
+          return;
+        }
+
         if (
           peerConnection.connectionState === "connected" &&
           shouldAcceptPeerConnectionConnected(stateRef.current)
@@ -403,10 +414,39 @@ export function LiveSessionClient({
           unmuteAfterOpeningResponse();
         }
         releaseInterviewerAudioMute();
+
+        if (stateRef.current === "ending") {
+          completeAutomaticEnd();
+        }
+      }
+
+      if (isCompletedInterviewClosingEvent(parsed)) {
+        beginAutomaticEnd();
       }
     } catch {
       return;
     }
+  }
+
+  function beginAutomaticEnd() {
+    if (stateRef.current === "ending" || stateRef.current === "ended") {
+      return;
+    }
+
+    stateRef.current = "ending";
+    setError(null);
+    setMicrophoneEnabled(false);
+    setState("ending");
+  }
+
+  function completeAutomaticEnd() {
+    if (stateRef.current !== "ending") {
+      return;
+    }
+
+    teardownBrowserMedia();
+    stateRef.current = "ended";
+    setState("ended");
   }
 
   function unmuteAfterOpeningResponse() {
@@ -831,6 +871,18 @@ export function shouldReportPeerConnectionFailure(
   }
 
   return connectionState === "failed" || connectionState === "disconnected";
+}
+
+export function shouldCompleteAutomaticEnd(
+  state: LiveState,
+  connectionState: RTCPeerConnectionState,
+): boolean {
+  return (
+    state === "ending" &&
+    (connectionState === "failed" ||
+      connectionState === "disconnected" ||
+      connectionState === "closed")
+  );
 }
 
 async function readRealtimeStartFailure(

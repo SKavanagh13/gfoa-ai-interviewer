@@ -122,12 +122,12 @@ describe("sideband event parsing", () => {
     ).not.toContainEqual({ kind: "completedClosing" });
   });
 
-  it("does not treat ordinary output buffer stops as session endings", () => {
+  it("reports output buffer stops without treating them as completed closings", () => {
     expect(
       parseSidebandEvent({
         type: "output_audio_buffer.stopped",
       }),
-    ).toEqual([{ kind: "ignore" }]);
+    ).toEqual([{ kind: "outputAudioStopped" }]);
   });
 
   it("maps the confirmed session-ended sentinel", () => {

@@ -84,19 +84,107 @@ describe("Wave 5 structured output schema", () => {
   });
 
   it("constrains structured field names to the locked objective fields", () => {
-    const fieldNameSchema = postInterviewOutputSchema.properties
-      .objective_results.items.properties.structured_fields.items.properties
-      .field_name;
+    const variants = postInterviewOutputSchema.properties
+      .objective_results.items.properties.structured_fields.items.anyOf;
+    const fieldNames = [...new Set(variants.flatMap((variant) => variant.properties.field_name.enum))];
     const allowedFieldNames = Object.values(OBJECTIVE_FIELD_NAMES).flat();
 
-    expect(fieldNameSchema.enum).toEqual(allowedFieldNames);
-    expect(fieldNameSchema.enum).not.toContain("issue_description");
-    expect(fieldNameSchema.enum).not.toContain("revenue_forecast_focus");
-    expect(fieldNameSchema.enum).not.toContain("theoretical_approach");
+    expect(fieldNames).toEqual(allowedFieldNames);
+    expect(fieldNames).not.toContain("issue_description");
+    expect(fieldNames).not.toContain("revenue_forecast_focus");
+    expect(fieldNames).not.toContain("theoretical_approach");
+  });
+
+  it("constrains each supported coded value to one exact category and unsupported values to null", () => {
+    const variants = postInterviewOutputSchema.properties.objective_results.items
+      .properties.structured_fields.items.anyOf;
+    for (const [fieldName, options] of Object.entries(CODED_FIELD_VALUE_OPTIONS)) {
+      const fields = variants.filter((variant) => variant.properties.field_name.enum.includes(fieldName));
+      expect(fields).toHaveLength(2);
+      expect(fields[0]).toMatchObject({ properties: {
+        value: { type: "string", enum: options },
+        value_status: { enum: ["supported"] },
+      } });
+      expect(fields[1]).toMatchObject({ properties: {
+        value: { type: "null" },
+        value_status: { enum: ["not_discussed", "unclear"] },
+      } });
+    }
   });
 });
 
 describe("Wave 5 post-interview output validation", () => {
+  it("rejects the multi-category support value observed in the failed real interview", () => {
+    const output = validOutput();
+    output.objective_results[4].structured_fields = [{
+      field_name: "type_of_support",
+      value: "technology, data, analytical_tool",
+      value_status: "supported",
+    }];
+    const result = validatePostInterviewOutput(output, [segment({})]);
+    expect(result).toMatchObject({ ok: false });
+    expect(result.ok ? [] : result.issues.join(" ")).toContain("unmet_need.type_of_support must be one of");
+    expect(output.objective_results[4].structured_fields[0].value).toBe("technology, data, analytical_tool");
+  });
+
+  it("preserves uncertainty rather than forcing an adoption category", () => {
+    const output = validOutput();
+    output.objective_results[5].structured_fields = [{
+      field_name: "preferred_adoption_posture", value: null, value_status: "not_discussed",
+    }];
+    const result = validatePostInterviewOutput(output, [segment({
+      text: "Mandatory changes get our attention, and we consult our network.",
+    })]);
+    expect(result).toMatchObject({ ok: true });
+    if (result.ok) {
+      expect(result.output.objective_results[5].structured_fields[0]).toEqual({
+        field_name: "preferred_adoption_posture", value: null, value_status: "not_discussed",
+      });
+    }
+  });
+
+  it("rejects a cited interviewer question even when the participant answer exists", () => {
+    const output = validOutput();
+    output.objective_results[4].supporting_segment_ids = ["question"];
+    const result = validatePostInterviewOutput(output, [
+      segment({ segmentId: "question", speaker: "interviewer", text: "What support would help?" }),
+      segment({ text: "We need automated projections to reduce reporting work." }),
+    ]);
+    expect(result).toMatchObject({ ok: false });
+    expect(result.ok ? [] : result.issues.join(" ")).toContain("must cite participant statements");
+    output.objective_results[4].supporting_segment_ids = ["segment-1"];
+    expect(validatePostInterviewOutput(output, [segment({})])).toMatchObject({ ok: true });
+  });
+
+  it("rejects supported values without substantive coverage or a non-empty value", () => {
+    for (const coverage of ["not_covered", "unclear"] as const) {
+      const output = validOutput();
+      output.objective_results[5].coverage = coverage;
+      output.objective_results[5].structured_fields[0] = {
+        field_name: "primary_attention_trigger", value: "Mandatory changes", value_status: "supported",
+      };
+      expect(validatePostInterviewOutput(output, [segment({})])).toMatchObject({ ok: false });
+    }
+    for (const value of [null, ""]) {
+      const output = validOutput();
+      output.objective_results[0].structured_fields[0] = {
+        field_name: "primary_current_issue", value, value_status: "supported",
+      };
+      expect(validatePostInterviewOutput(output, [segment({})])).toMatchObject({ ok: false });
+    }
+  });
+
+  it("requires participant evidence for tags and quote proposals", () => {
+    const output = validOutput();
+    output.topic_tags[0].supporting_segment_ids = [];
+    output.representative_quotes[0].proposed_segment_ids = [];
+    expect(validatePostInterviewOutput(output, [segment({})])).toMatchObject({ ok: false });
+    output.topic_tags[0].supporting_segment_ids = ["question"];
+    output.representative_quotes[0].proposed_segment_ids = ["question"];
+    expect(validatePostInterviewOutput(output, [segment({}), segment({
+      segmentId: "question", speaker: "interviewer",
+    })])).toMatchObject({ ok: false });
+  });
   it("accepts exactly one result for each locked objective", () => {
     expect(validatePostInterviewOutput(validOutput(), [segment({})])).toMatchObject({
       ok: true,
@@ -297,6 +385,12 @@ describe("Wave 5 post-interview output validation", () => {
 });
 
 describe("Wave 5 eligibility validation", () => {
+  it("does not accept eligibility supported only by an interviewer question", () => {
+    expect(validateEligibilityModelResult({
+      eligible: true, supporting_objective: "unmet_need", supporting_segment_ids: ["question"],
+      rationale: "The question asks about useful support.",
+    }, [segment({ segmentId: "question", speaker: "interviewer" })])).toMatchObject({ ok: false });
+  });
   it("counts only finalized participant words", () => {
     expect(
       countParticipantWords([

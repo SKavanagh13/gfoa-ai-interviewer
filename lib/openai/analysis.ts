@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { getServerRuntimeEnv } from "@/lib/server-runtime-env";
 import {
+  ANALYSIS_PROMPT_VERSION,
   ELIGIBILITY_PROMPT_VERSION,
   ELIGIBILITY_SCHEMA_VERSION,
   STRUCTURED_SCHEMA_VERSION,
@@ -19,6 +20,7 @@ export type AnalysisModelInput = {
   serializedTranscript: string;
   segmentMap: string;
   participantContext: Record<string, string | null>;
+  interviewMetadata?: { end_disposition: string | null };
 };
 
 export async function requestEligibilityClassification(
@@ -27,8 +29,13 @@ export async function requestEligibilityClassification(
   return requestStructuredOutput({
     formatName: "gfoa_analysis_eligibility",
     schema: eligibilityOutputSchema,
+    schemaVersion: ELIGIBILITY_SCHEMA_VERSION,
     systemPrompt: buildEligibilityPrompt(),
-    input,
+    input: {
+      serializedTranscript: input.serializedTranscript,
+      segmentMap: input.segmentMap,
+      participantContext: input.participantContext,
+    },
   });
 }
 
@@ -38,6 +45,7 @@ export async function requestPostInterviewAnalysis(
   return requestStructuredOutput({
     formatName: "gfoa_post_interview_output",
     schema: postInterviewOutputSchema,
+    schemaVersion: STRUCTURED_SCHEMA_VERSION,
     systemPrompt: await loadPostInterviewPrompt(),
     input,
   });
@@ -46,11 +54,13 @@ export async function requestPostInterviewAnalysis(
 async function requestStructuredOutput({
   formatName,
   schema,
+  schemaVersion,
   systemPrompt,
   input,
 }: {
   formatName: string;
   schema: unknown;
+  schemaVersion: string;
   systemPrompt: string;
   input: AnalysisModelInput;
 }): Promise<StructuredOutputModelResult> {
@@ -74,7 +84,8 @@ async function requestStructuredOutput({
                 transcript: input.serializedTranscript,
                 segment_map: input.segmentMap,
                 participant_context: input.participantContext,
-                schema_version: STRUCTURED_SCHEMA_VERSION,
+                interview_metadata: input.interviewMetadata ?? null,
+                schema_version: schemaVersion,
               },
               null,
               2,
@@ -157,10 +168,14 @@ async function requestStructuredOutput({
 }
 
 async function loadPostInterviewPrompt(): Promise<string> {
-  return readFile(
-    path.join(process.cwd(), "prompts", "post-interview-analysis.system.md"),
-    "utf8",
-  );
+  const [prompt, specification] = await Promise.all([
+    readFile(path.join(process.cwd(), "prompts", "post-interview-analysis.system.md"), "utf8"),
+    readFile(path.join(process.cwd(), "docs", "locked", "03-per-interview-output-specification.md"), "utf8"),
+  ]);
+  if (!prompt.startsWith(`Version: ${ANALYSIS_PROMPT_VERSION}`)) {
+    throw new Error("Analysis prompt file does not match its recorded version.");
+  }
+  return `${prompt}\n\nLocked Per-Interview Output Specification:\n\n${specification}`;
 }
 
 function buildEligibilityPrompt(): string {

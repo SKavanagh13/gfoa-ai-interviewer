@@ -1,9 +1,9 @@
 import type { Database } from "@/types/database.types";
 
-export const ANALYSIS_PROMPT_VERSION = "wave5-post-interview-analysis-v4";
+export const ANALYSIS_PROMPT_VERSION = "wave5-post-interview-analysis-v5";
 export const OUTPUT_SPECIFICATION_VERSION =
   "locked-03-per-interview-output-specification";
-export const STRUCTURED_SCHEMA_VERSION = "wave5-post-interview-output-v3";
+export const STRUCTURED_SCHEMA_VERSION = "wave5-post-interview-output-v4";
 export const ELIGIBILITY_PROMPT_VERSION = "wave5-analysis-eligibility-v2";
 export const ELIGIBILITY_SCHEMA_VERSION = "wave5-analysis-eligibility-v1";
 

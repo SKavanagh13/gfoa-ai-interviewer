@@ -6,7 +6,8 @@ import {
   runPostInterviewAnalysisWithDependencies,
   type PostInterviewAnalysisRunnerDependencies,
 } from "@/lib/analysis/runner";
-import { OBJECTIVES, OBJECTIVE_FIELD_NAMES } from "@/lib/analysis/constants";
+import { OBJECTIVES, OBJECTIVE_FIELD_NAMES, ANALYSIS_PROMPT_VERSION, STRUCTURED_SCHEMA_VERSION, OUTPUT_SPECIFICATION_VERSION } from "@/lib/analysis/constants";
+import type { PendingAnalysisRunRecord } from "@/lib/analysis/repository";
 import type { PostInterviewOutput } from "@/lib/analysis/types";
 import type { CanonicalTranscriptSegment } from "@/lib/transcript/types";
 
@@ -106,7 +107,7 @@ function createDependencies(
   let runCount = 0;
   const pendingRuns = new Map<
     string,
-    { analysisId: string; interviewId: string; analysisModel: string | null }
+    PendingAnalysisRunRecord
   >();
 
   const dependencies: PostInterviewAnalysisRunnerDependencies = {
@@ -141,6 +142,9 @@ function createDependencies(
           analysisId,
           interviewId: input.interviewId,
           analysisModel: input.analysisModel,
+          analysisPromptVersion: ANALYSIS_PROMPT_VERSION,
+          structuredSchemaVersion: STRUCTURED_SCHEMA_VERSION,
+          outputSpecificationVersion: OUTPUT_SPECIFICATION_VERSION,
         });
         return analysisId;
       },
@@ -208,6 +212,58 @@ function createDependencies(
 }
 
 describe("Wave 5 analysis runner", () => {
+  it.each([
+    { analysisPromptVersion: "wave5-post-interview-analysis-v4" },
+    { structuredSchemaVersion: "wave5-post-interview-output-v3" },
+    { outputSpecificationVersion: "obsolete-specification" },
+    { analysisModel: "different-model" },
+  ])("rejects obsolete queued metadata without attributing current output to an old run: %j", async (obsolete) => {
+    const base = createDependencies();
+    base.dependencies.repository.loadPendingAnalysisRun = async () => ({
+      analysisId: "old-pending", interviewId: "interview-1", analysisModel: "gpt-4o-mini",
+      analysisPromptVersion: ANALYSIS_PROMPT_VERSION,
+      structuredSchemaVersion: STRUCTURED_SCHEMA_VERSION,
+      outputSpecificationVersion: OUTPUT_SPECIFICATION_VERSION,
+      ...obsolete,
+    });
+    const result = await processPendingAnalysisRunWithDependencies("old-pending", base.dependencies);
+    expect(result).toMatchObject({ status: "failed", analysisId: "old-pending" });
+    expect(base.calls.eligibilityRequests).toBe(0);
+    expect(base.calls.analysisRequests).toBe(0);
+    expect(base.calls.persistSucceededAnalysis).toHaveLength(0);
+    expect(base.calls.markAnalysisRunFailed[0].errorMessage).toContain("Queue a new analysis run");
+  });
+
+  it("passes technical failure metadata to the analysis without excluding useful content", async () => {
+    const base = createDependencies();
+    base.dependencies.repository.loadInterviewForAnalysis = async () => ({
+      interviewId: "interview-1", transcriptStatus: "stable", endDisposition: "technical_failure",
+      participantContext: {},
+    });
+    const model = vi.fn(async () => ({
+      parsed: validOutput(), rawResponse: {}, usage: { inputTokens: null, outputTokens: null },
+      refusal: null, errorMessage: null,
+    }));
+    base.dependencies.requestPostInterviewAnalysis = model;
+    expect(await runPostInterviewAnalysisWithDependencies("interview-1", base.dependencies)).toMatchObject({ status: "succeeded" });
+    expect(model).toHaveBeenCalledWith(expect.objectContaining({
+      interviewMetadata: { end_disposition: "technical_failure" },
+    }));
+  });
+
+  it("does not persist partial results when a real-interview-style support code is invalid", async () => {
+    const output = validOutput();
+    output.objective_results[4].structured_fields[1] = {
+      field_name: "type_of_support", value: "technology, data, analytical_tool", value_status: "supported",
+    };
+    const base = createDependencies({ requestPostInterviewAnalysis: async () => ({
+      parsed: output, rawResponse: { rejected_code: "technology, data, analytical_tool" },
+      usage: { inputTokens: 100, outputTokens: 50 }, refusal: null, errorMessage: null,
+    }) });
+    expect(await runPostInterviewAnalysisWithDependencies("interview-1", base.dependencies)).toMatchObject({ status: "failed" });
+    expect(base.calls.persistSucceededAnalysis).toHaveLength(0);
+    expect(base.calls.markAnalysisRunFailed[0].errorMessage).toContain("unmet_need.type_of_support");
+  });
   it("does not begin analysis for unstable transcripts", async () => {
     const { calls, dependencies } = createDependencies({
       repository: {

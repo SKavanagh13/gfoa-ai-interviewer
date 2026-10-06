@@ -14,6 +14,7 @@ import type { VerifiedQuoteForPersistence } from "@/lib/analysis/quote-verificat
 export type AnalysisInterviewRecord = {
   interviewId: string;
   transcriptStatus: Database["public"]["Enums"]["transcript_status"];
+  endDisposition?: Database["public"]["Enums"]["end_disposition"] | null;
   participantContext: Record<string, string | null>;
 };
 
@@ -26,6 +27,9 @@ export type PendingAnalysisRunRecord = {
   analysisId: string;
   interviewId: string;
   analysisModel: string | null;
+  analysisPromptVersion: string | null;
+  structuredSchemaVersion: string | null;
+  outputSpecificationVersion: string | null;
 };
 
 export class AnalysisRepository {
@@ -37,7 +41,7 @@ export class AnalysisRepository {
     const { data, error } = await this.supabase
       .from("interviews")
       .select(
-        "interview_id, transcript_status, participants(government_type, state_or_region, organization_size_band, experience_band)",
+        "interview_id, transcript_status, end_disposition, participants(government_type, state_or_region, organization_size_band, experience_band)",
       )
       .eq("interview_id", interviewId)
       .maybeSingle();
@@ -57,6 +61,7 @@ export class AnalysisRepository {
     return {
       interviewId: data.interview_id,
       transcriptStatus: data.transcript_status,
+      endDisposition: data.end_disposition,
       participantContext: {
         government_type: participant?.government_type ?? null,
         state_or_region: participant?.state_or_region ?? null,
@@ -143,7 +148,7 @@ export class AnalysisRepository {
   ): Promise<PendingAnalysisRunRecord[]> {
     const { data, error } = await this.supabase
       .from("analysis_runs")
-      .select("analysis_id, interview_id, analysis_model")
+      .select("analysis_id, interview_id, analysis_model, analysis_prompt_version, structured_schema_version, output_specification_version")
       .eq("status", "pending")
       .order("created_at", { ascending: true })
       .limit(limit);
@@ -156,6 +161,9 @@ export class AnalysisRepository {
       analysisId: run.analysis_id,
       interviewId: run.interview_id,
       analysisModel: run.analysis_model,
+      analysisPromptVersion: run.analysis_prompt_version,
+      structuredSchemaVersion: run.structured_schema_version,
+      outputSpecificationVersion: run.output_specification_version,
     }));
   }
 
@@ -164,7 +172,7 @@ export class AnalysisRepository {
   ): Promise<PendingAnalysisRunRecord | null> {
     const { data, error } = await this.supabase
       .from("analysis_runs")
-      .select("analysis_id, interview_id, analysis_model")
+      .select("analysis_id, interview_id, analysis_model, analysis_prompt_version, structured_schema_version, output_specification_version")
       .eq("analysis_id", analysisId)
       .eq("status", "pending")
       .maybeSingle();
@@ -181,6 +189,9 @@ export class AnalysisRepository {
       analysisId: data.analysis_id,
       interviewId: data.interview_id,
       analysisModel: data.analysis_model,
+      analysisPromptVersion: data.analysis_prompt_version,
+      structuredSchemaVersion: data.structured_schema_version,
+      outputSpecificationVersion: data.output_specification_version,
     };
   }
 
@@ -189,7 +200,7 @@ export class AnalysisRepository {
   ): Promise<PendingAnalysisRunRecord | null> {
     const { data, error } = await this.supabase
       .from("analysis_runs")
-      .select("analysis_id, interview_id, analysis_model")
+      .select("analysis_id, interview_id, analysis_model, analysis_prompt_version, structured_schema_version, output_specification_version")
       .eq("interview_id", interviewId)
       .eq("status", "pending")
       .order("created_at", { ascending: true })
@@ -210,6 +221,9 @@ export class AnalysisRepository {
       analysisId: data.analysis_id,
       interviewId: data.interview_id,
       analysisModel: data.analysis_model,
+      analysisPromptVersion: data.analysis_prompt_version,
+      structuredSchemaVersion: data.structured_schema_version,
+      outputSpecificationVersion: data.output_specification_version,
     };
   }
 

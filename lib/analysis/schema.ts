@@ -1,6 +1,59 @@
-import postInterviewOutputSchema from "@/schemas/post-interview-output.schema.json";
+import basePostInterviewOutputSchema from "@/schemas/post-interview-output.schema.json";
+import { CODED_FIELD_VALUE_OPTIONS, OBJECTIVE_FIELD_NAMES } from "@/lib/analysis/constants";
 
-export { postInterviewOutputSchema };
+const objectiveSchema = basePostInterviewOutputSchema.properties.objective_results.items;
+
+// Keep the v3 source schema intact; constrain v4 generation from the same coding rules as validation.
+export const postInterviewOutputSchema = {
+  ...basePostInterviewOutputSchema,
+  properties: {
+    ...basePostInterviewOutputSchema.properties,
+    objective_results: {
+      ...basePostInterviewOutputSchema.properties.objective_results,
+      items: {
+        ...objectiveSchema,
+        properties: {
+          ...objectiveSchema.properties,
+          structured_fields: {
+            type: "array",
+            items: {
+              anyOf: Object.values(OBJECTIVE_FIELD_NAMES).flat().flatMap((fieldName) => {
+                const allowedValues = CODED_FIELD_VALUE_OPTIONS[fieldName];
+                const properties = {
+                  field_name: { type: "string", enum: [fieldName] },
+                };
+                return [
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      ...properties,
+                      value: allowedValues
+                        ? { type: "string", enum: allowedValues }
+                        : { type: "string" },
+                      value_status: { type: "string", enum: ["supported"] },
+                    },
+                    required: ["field_name", "value", "value_status"],
+                  },
+                  {
+                    type: "object",
+                    additionalProperties: false,
+                    properties: {
+                      ...properties,
+                      value: { type: "null" },
+                      value_status: { type: "string", enum: ["not_discussed", "unclear"] },
+                    },
+                    required: ["field_name", "value", "value_status"],
+                  },
+                ];
+              }),
+            },
+          },
+        },
+      },
+    },
+  },
+};
 
 export const eligibilityOutputSchema = {
   type: "object",

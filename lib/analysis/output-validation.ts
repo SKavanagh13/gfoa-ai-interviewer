@@ -292,6 +292,17 @@ function validateStructuredFields(
       issues.push(`${result.objective}.${field.field_name} value must be string or null.`);
     }
 
+    if (field.value_status === "supported" &&
+      (typeof field.value !== "string" || !field.value.trim())) {
+      issues.push(`${result.objective}.${field.field_name} supported value must be non-empty.`);
+    }
+
+    if (field.value_status === "supported" &&
+      (result.coverage === "not_covered" || result.coverage === "unclear" ||
+        !Array.isArray(result.supporting_segment_ids) || result.supporting_segment_ids.length === 0)) {
+      issues.push(`${result.objective}.${field.field_name} supported value requires substantive participant evidence.`);
+    }
+
     if (field.value_status !== "supported" && field.value !== null) {
       issues.push(
         `${result.objective}.${field.field_name} unsupported values must be null.`,
@@ -410,6 +421,10 @@ function validateTopicTags(
       issues.push("topic tag importance must be primary or secondary.");
     }
 
+    if (Array.isArray(item.supporting_segment_ids) && item.supporting_segment_ids.length === 0) {
+      issues.push("topic tag requires participant evidence.");
+    }
+
     validateSegmentIds(
       item.supporting_segment_ids,
       segments,
@@ -451,6 +466,10 @@ function validateQuoteProposals(
       issues.push("representative quote reason_selected must be a string.");
     }
 
+    if (Array.isArray(quote.proposed_segment_ids) && quote.proposed_segment_ids.length === 0) {
+      issues.push("representative quote requires participant evidence.");
+    }
+
     validateSegmentIds(
       quote.proposed_segment_ids,
       segments,
@@ -489,6 +508,10 @@ function validateSegmentIds(
 
     if (!segment.isFinal) {
       issues.push(`${label} cites non-final segment ${segmentId}.`);
+    }
+
+    if (segment.speaker !== "participant") {
+      issues.push(`${label} must cite participant statements, not ${segment.speaker} segment ${segmentId}.`);
     }
   }
 }

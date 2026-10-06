@@ -17,6 +17,7 @@ import { validatePostInterviewOutput } from "@/lib/analysis/output-validation";
 import { verifyQuoteProposals } from "@/lib/analysis/quote-verification";
 import type { StructuredOutputModelResult } from "@/lib/analysis/types";
 import { estimateModelCostUsd } from "@/lib/cost-estimation";
+import { ANALYSIS_PROMPT_VERSION, STRUCTURED_SCHEMA_VERSION, OUTPUT_SPECIFICATION_VERSION } from "@/lib/analysis/constants";
 
 export type RunPostInterviewAnalysisResult =
   | { status: "ineligible"; reason: string; participantWordCount: number }
@@ -54,6 +55,7 @@ export type PostInterviewAnalysisRunnerDependencies = {
       serializedTranscript: string;
       segmentMap: string;
       participantContext: Record<string, string | null>;
+      interviewMetadata?: { end_disposition: string | null };
     },
   ) => Promise<StructuredOutputModelResult>;
   requestPostInterviewAnalysis: (
@@ -61,6 +63,7 @@ export type PostInterviewAnalysisRunnerDependencies = {
       serializedTranscript: string;
       segmentMap: string;
       participantContext: Record<string, string | null>;
+      interviewMetadata?: { end_disposition: string | null };
     },
   ) => Promise<StructuredOutputModelResult>;
 };
@@ -147,6 +150,15 @@ export async function processPendingAnalysisRunWithDependencies(
       status: "failed",
       errorMessage: "Pending analysis run not found.",
     };
+  }
+
+  if (run.analysisPromptVersion !== ANALYSIS_PROMPT_VERSION ||
+    run.structuredSchemaVersion !== STRUCTURED_SCHEMA_VERSION ||
+    run.outputSpecificationVersion !== OUTPUT_SPECIFICATION_VERSION ||
+    run.analysisModel !== dependencies.analysisModel) {
+    const errorMessage = "Queued analysis versions or model are obsolete. Queue a new analysis run using the current configuration.";
+    await dependencies.repository.markAnalysisRunFailed(run.analysisId, { errorMessage });
+    return { status: "failed", analysisId: run.analysisId, errorMessage };
   }
 
   return executePostInterviewAnalysis(run.interviewId, {
@@ -249,6 +261,7 @@ async function executePostInterviewAnalysis(
     serializedTranscript,
     segmentMap,
     participantContext: interview.participantContext,
+    interviewMetadata: { end_disposition: interview.endDisposition ?? null },
   };
 
   const eligibilityResponse =

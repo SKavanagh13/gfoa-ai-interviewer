@@ -17,6 +17,20 @@ const transcript: CanonicalTranscriptSegment[] = [
 ];
 
 describe("Wave 5 quote verification", () => {
+  it("rejects inserted ellipses and added punctuation while accepting a contiguous excerpt", () => {
+    const source = [{ ...transcript[0], text: "the funding of public service, particularly public safety, relies on property taxes" }];
+    const proposals = [
+      "the funding of public service... relies on property taxes",
+      "relies on property taxes.",
+      "relies on property taxes",
+    ].map((quote_text) => ({
+      quote_text, related_objective: "enduring_concern" as const,
+      reason_selected: "Captures the funding concern.", proposed_segment_ids: ["segment-1"],
+    }));
+    expect(verifyQuoteProposals(proposals, source).map((quote) => quote.verification_status)).toEqual([
+      "rejected", "rejected", "accepted",
+    ]);
+  });
   it("persists accepted source segment offsets for exact matches", () => {
     expect(
       verifyQuoteProposals(
